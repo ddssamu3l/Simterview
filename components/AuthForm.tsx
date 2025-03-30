@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 //import { Input } from "@/components/ui/input"
 
 import FormField from "@/components/FormField"
+import { useRouter } from 'next/navigation'
 
 const authFormSchema = (type: FormType) =>{
   return z.object({
@@ -22,6 +23,7 @@ const authFormSchema = (type: FormType) =>{
 }
 
 const AuthForm = ({type}: {type: FormType}) => {
+  const router = useRouter();
   const formSchema = authFormSchema(type)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,8 +38,12 @@ const AuthForm = ({type}: {type: FormType}) => {
     try{
       if(type === 'sign-up'){
         console.log("Sign up attempt: " + values);
+        toast.success('Account created! Please sign in.');
+        router.push("/sign-in");
       }else{
         console.log("Sign in attempt: " + values);
+        toast.success('Sign in successfull!');
+        router.push("/");
       }
     }catch(error){
       console.log(error);
