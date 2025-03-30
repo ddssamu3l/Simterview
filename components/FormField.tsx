@@ -21,7 +21,7 @@ const FormField = <T extends FieldValues>({
   name,
   label,
   placeholder,
-  type = "text",
+  type,
 }: FormFieldProps<T>) => {
   return (
     <Controller

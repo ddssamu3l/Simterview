@@ -1,5 +1,5 @@
 "use client"
-import React from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 
 import FormField from "@/components/FormField"
 import { useRouter } from 'next/navigation'
+import { Checkbox } from './ui/checkbox'
 
 const authFormSchema = (type: FormType) =>{
   return z.object({
@@ -52,6 +53,7 @@ const AuthForm = ({type}: {type: FormType}) => {
   }
 
   const isSignIn = type === 'sign-in';
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <div className="card-border min-w-[380px] lg:min-w-[566px]">
@@ -75,6 +77,7 @@ const AuthForm = ({type}: {type: FormType}) => {
                 name="name" 
                 label="Username"
                 placeholder="Your new username"
+                type="text"
               />
             )}
             <FormField
@@ -82,14 +85,31 @@ const AuthForm = ({type}: {type: FormType}) => {
               name="email"
               label="Email"
               placeholder="Your email"
+              type="email"
             />
             <FormField
               control={form.control}
               name="password"
               label="Password"
               placeholder="Your password"
+              type={showPassword? 'text' : 'password'}
             />
-            <Button type="submit" className="mt-8">{(isSignIn)? 'Sign in' : "Create an account"}</Button>
+            <div className="items-top flex space-x-2">
+              <Checkbox 
+                id="show-password" 
+                checked={showPassword}
+                onCheckedChange={() => setShowPassword(!showPassword)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="show-password"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  show password
+                </label>
+              </div>
+            </div>
+            <Button type="submit" className="mt-6">{(isSignIn)? 'Sign in' : "Create an account"}</Button>
           </form>
         </Form>
         <p className="text-center mt-[-2]">
