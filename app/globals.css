@@ -13,10 +13,10 @@
   --color-primary-100: #FFFFFF;
   --color-primary-200: #5c7fd1;
 
-  --color-light-100: #FFFFFF;
-  --color-light-200: #96abd9;
-  --color-light-300: #5973ab;
-  --color-light-400: #38538f;
+  --color-light-100: #e2e8f0;
+  --color-light-200: #94a3b8;
+  --color-light-300: #64748b;
+  --color-light-400: #475569;
 
   --color-dark-100: #334155;
   --color-dark-200: #1e293b;
@@ -138,7 +138,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-gray-600 outline-ring/50;
   }
 
   body {
@@ -149,16 +149,20 @@
     @apply text-light-100;
   }
 
+  h1 {
+    @apply text-4xl font-bold text-light-100;
+  }
+
   h2 {
-    @apply text-3xl font-semibold;
+    @apply text-3xl font-semibold text-light-100;
   }
 
   h3 {
-    @apply text-2xl font-semibold;
+    @apply text-2xl font-semibold text-light-100;
   }
 
   ul {
-    @apply list-disc list-inside;
+    @apply list-disc list-inside text-light-100;
   }
 
   li {
@@ -184,11 +188,11 @@
   }
 
   .btn-primary {
-    @apply w-fit !bg-primary-200 !text-dark-100 hover:!bg-primary-200/80 !rounded-full !font-bold px-5 cursor-pointer min-h-10;
+    @apply w-fit !bg-light-100 !text-dark-100 hover:!bg-light-100/90 !rounded-md !font-bold px-5 cursor-pointer min-h-10;
   }
 
   .btn-secondary {
-    @apply w-fit !bg-dark-200 !text-primary-200 hover:!bg-dark-200/80 !rounded-full !font-bold px-5 cursor-pointer min-h-10;
+    @apply w-fit !bg-dark-200 !text-primary-200 hover:!bg-dark-200/90 !rounded-md !font-bold px-5 cursor-pointer min-h-10;
   }
 
   .btn-upload {
@@ -196,7 +200,7 @@
   }
 
   .card-border {
-    @apply border-1 p-0.5 rounded-2xl w-fit;
+    @apply border p-0.5 rounded-2xl w-fit hover:bg-dark-300 hover:cursor-pointer;
   }
 
   .card {
@@ -280,11 +284,15 @@
   }
 
   .interviews-section {
-    @apply flex flex-wrap gap-4 max-lg:flex-col w-full items-stretch;
+    @apply flex flex-wrap gap-4 max-lg:flex-col w-full items-stretch py-6;
   }
 
   .interview-text {
     @apply text-lg text-center text-white;
+  }
+
+  .interview-title {
+    @apply flex items-center justify-center h-36 border-b px-4
   }
 
   .progress {
@@ -296,7 +304,7 @@
   }
 
   .card-interview {
-    @apply dark-gradient rounded-2xl min-h-full flex flex-col p-6 relative overflow-hidden gap-10 justify-between;
+    @apply border-b bg-transparent flex flex-col px-4 py-2 relative overflow-hidden gap-10 justify-between;
 
     .badge-text {
       @apply text-sm font-semibold capitalize;
@@ -317,7 +325,7 @@
 }
 
 @utility blue-gradient-dark {
-  @apply bg-gradient-to-b from-[#1e293b] to-[#020617];
+  @apply bg-gradient-to-b from-[#0f172a] to-[#020617];
 }
 
 @utility blue-gradient {

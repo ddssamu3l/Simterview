@@ -63,9 +63,9 @@ const AuthForm = ({type}: {type: FormType}) => {
             src="/icon.png"
             alt="simterview icon"
             height={50}
-            width={50}
+            width={44}
           />
-          <h2 className="text-light-100">Simterview</h2>
+          <h1 className="text-light-100">Simterview</h1>
         </div>
         <h3 className="text-light-100 text-xl lg:text-2xl">Practice SWE interviews with AI</h3>
       

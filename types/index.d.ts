@@ -13,16 +13,20 @@ interface Feedback {
   createdAt: string;
 }
 
+type InterviewDifficulty = 'Beginner' | 'Intern' | 'Junior/New Grad' | "Mid Level" | "Senior";
+type InterviewType = 'Behavioral' | 'Technical' | 'Mixed'
+
 interface Interview {
   id: string;
-  role: string;
-  level: string;
+  name: string;
+  length: number;
+  difficulty: InterviewDifficulty;
+  description: string;
   questions: string[];
-  techstack: string[];
   createdAt: string;
-  userId: string;
-  type: string;
+  type: InterviewType;
   finalized: boolean;
+  pass?: boolean;
 }
 
 interface CreateFeedbackParams {
@@ -39,12 +43,17 @@ interface User {
 }
 
 interface InterviewCardProps {
-  interviewId?: string;
-  userId?: string;
-  role: string;
-  type: string;
-  techstack: string[];
-  createdAt?: string;
+  key: string;
+  id: string;
+  name: string;
+  length: number;
+  difficulty: InterviewDifficulty;
+  description: string;
+  questions: string[];
+  createdAt: string;
+  type: InterviewType;
+  finalized: boolean;
+  pass?: boolean;
 }
 
 interface AgentProps {
