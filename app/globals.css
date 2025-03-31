@@ -292,7 +292,11 @@
   }
 
   .interview-title {
-    @apply flex items-center justify-center h-36 border-b px-4
+    @apply flex items-center justify-center h-36 mx-2
+  }
+
+  .interview-description{
+    @apply flex items-center justify-center pt-2
   }
 
   .progress {
@@ -300,7 +304,7 @@
   }
 
   .tech-tooltip {
-    @apply absolute bottom-full mb-1 hidden group-hover:flex px-2 py-1 text-xs text-white bg-gray-700 rounded-md shadow-md;
+    @apply absolute bottom-full mb-1 hidden group-hover:flex px-2 py-1 text-xs text-white rounded-md shadow-md border;
   }
 
   .card-interview {

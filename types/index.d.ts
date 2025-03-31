@@ -23,6 +23,7 @@ interface Interview {
   difficulty: InterviewDifficulty;
   description: string;
   questions: string[];
+  techStack: string[];
   createdAt: string;
   type: InterviewType;
   finalized: boolean;
@@ -50,6 +51,7 @@ interface InterviewCardProps {
   difficulty: InterviewDifficulty;
   description: string;
   questions: string[];
+  techStack: string[];
   createdAt: string;
   type: InterviewType;
   finalized: boolean;
@@ -99,7 +101,7 @@ interface InterviewFormProps {
   role: string;
   level: string;
   type: string;
-  techstack: string[];
+  techStack: string[];
   amount: number;
 }
 

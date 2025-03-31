@@ -7,7 +7,7 @@ const interviews = () => {
     <section className="flex flex-col gap-6 mt-8 text-center">
       <h1 className="sm:text-5xl">Interview List</h1>
       <p>Pick an interview to start your session</p>
-      <div className="interviews-section">
+      <div className="interviews-section flex justify-center">
         {dummyInterviews.map((interview) => (
           <InterviewCard key={interview.id} {...interview} />
         ))}
