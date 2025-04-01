@@ -11,7 +11,7 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
   const formattedDate = dayjs(feedback?.createdAt || createdAt || Date.now()).format('MMM D, YYYY');
   
   return (
-    <div className="card-border w-[360px] max-sm:w-full min-h-64">
+    <div className="card-border hover:bg-dark-300 w-[360px] max-sm:w-full min-h-64 cursor-pointer">
       <Link href={(pass != null && pass != undefined)
         ? `/interview/${id}/feedback`
         : `/interview/${id}`

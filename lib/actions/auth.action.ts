@@ -5,6 +5,43 @@ import { cookies } from "next/headers";
 
 const ONE_WEEK = 60 * 60 * 24 * 7
 
+export async function handleGitHubAuth(idToken: string) {
+  try {
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+
+    // Get the user record from Firebase Auth
+    const userRecord = await auth.getUser(uid);
+
+    // Check if we need to create a user in Firestore
+    const userDocSnapshot = await db.collection('users').doc(uid).get();
+
+    if (!userDocSnapshot.exists) {
+      await db.collection('users').doc(uid).set({
+        email: userRecord.email,
+        name: userRecord.displayName || "User",
+        createdAt: new Date().toISOString(),
+        authProvider: 'github'
+      });
+    }
+
+    // Set the session cookie
+    await setSessionCookie(idToken);
+
+    return {
+      success: true,
+      message: "GitHub authentication succeeded"
+    };
+  } catch (error) {
+    console.error("Error handling GitHub auth:", error);
+    return {
+      success: false,
+      message: "Failed to authenticate with GitHub"
+    };
+  }
+}
+
+
 export async function signUp(params: SignUpParams){
   const {uid, name, email} = params;
 

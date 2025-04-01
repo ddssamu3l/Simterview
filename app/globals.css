@@ -200,7 +200,7 @@
   }
 
   .card-border {
-    @apply border p-0.5 rounded-2xl w-fit hover:bg-dark-300 hover:cursor-pointer;
+    @apply border p-0.5 rounded-2xl w-fit;
   }
 
   .card {

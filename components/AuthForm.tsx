@@ -10,25 +10,32 @@ import { Button } from "@/components/ui/button"
 import { Form } from "@/components/ui/form"
 import Link from 'next/link'
 import { toast } from 'sonner'
-//import { Input } from "@/components/ui/input"
 
 import FormField from "@/components/FormField"
 import { useRouter } from 'next/navigation'
 import { Checkbox } from './ui/checkbox'
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GithubAuthProvider,
+  signInWithPopup
+} from 'firebase/auth'
 import { auth } from '@/firebase/client'
-import { signIn, signUp } from '@/lib/actions/auth.action'
+import { signIn, signUp, handleGitHubAuth } from '@/lib/actions/auth.action'
 
-const authFormSchema = (type: FormType) =>{
+type FormType = 'sign-in' | 'sign-up';
+
+const authFormSchema = (type: FormType) => {
   return z.object({
     name: type === 'sign-up' ? z.string().min(3) : z.string().optional(),
     email: z.string().email(),
-    password: z.string().min(6), 
+    password: z.string().min(6),
   })
 }
 
-const AuthForm = ({type}: {type: FormType}) => {
+const AuthForm = ({ type }: { type: FormType }) => {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
   const formSchema = authFormSchema(type)
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,22 +46,49 @@ const AuthForm = ({type}: {type: FormType}) => {
     },
   })
 
+  async function signInWithGitHub() {
+    try {
+      setIsLoading(true);
+      const provider = new GithubAuthProvider();
+
+      const result = await signInWithPopup(auth, provider);
+
+      if (result.user) {
+        const idToken = await result.user.getIdToken();
+        const authResult = await handleGitHubAuth(idToken);
+
+        if (authResult.success) {
+          toast.success("GitHub authentication successful!");
+          router.push("/interview-list");
+        } else {
+          toast.error(authResult.message || "Authentication failed");
+        }
+      }
+    } catch (error: any) {
+      console.error("GitHub auth error:", error);
+      toast.error(error.message || "GitHub authentication failed");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    try{
-      if(type === 'sign-up'){
+    try {
+      setIsLoading(true);
+      if (type === 'sign-up') {
         console.log("Sign up attempt: " + values);
-        const {name, email, password} = values;
-        
+        const { name, email, password } = values;
+
         const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
 
         const result = await signUp({
           uid: userCredentials.user.uid,
           name: name!,
           email,
-          password, 
+          password,
         })
 
-        if(!result?.success){
+        if (!result?.success) {
           toast.error(result?.message);
           return;
         }
@@ -64,7 +98,7 @@ const AuthForm = ({type}: {type: FormType}) => {
         const signInCredentials = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await signInCredentials.user.getIdToken();
 
-        if(!idToken){
+        if (!idToken) {
           toast.error("Automatic sign-in failed. Please sign-in manually");
           return;
         }
@@ -73,13 +107,13 @@ const AuthForm = ({type}: {type: FormType}) => {
           email, idToken,
         });
         router.push("/");
-      }else{
+      } else {
         console.log("Sign in attempt: " + values);
-        const {email, password} = values;
+        const { email, password } = values;
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
 
-        if(!idToken){
+        if (!idToken) {
           toast.error("Error with sign in");
           return;
         }
@@ -89,9 +123,11 @@ const AuthForm = ({type}: {type: FormType}) => {
         })
         router.push("/");
       }
-    }catch(error: any){
+    } catch (error: any) {
       console.log(error);
       toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -102,7 +138,7 @@ const AuthForm = ({type}: {type: FormType}) => {
     <div className="card-border min-w-[380px] lg:min-w-[566px]">
       <div className="flex flex-col gap-6 card py-14 px-10">
         <div className="flex flex-row gap-2 justify-center">
-          <Image 
+          <Image
             src="/icon.png"
             alt="simterview icon"
             height={50}
@@ -111,13 +147,21 @@ const AuthForm = ({type}: {type: FormType}) => {
           <h1 className="text-light-100">Simterview</h1>
         </div>
         <h3 className="text-light-100 text-xl lg:text-2xl">Practice SWE interviews with AI</h3>
-      
+        <Button
+          className="bg-transparent hover:bg-dark-300 border text-light-100 w-full mt-4"
+          onClick={signInWithGitHub}
+          disabled={isLoading}
+        >
+          <Image src="/covers/github.svg" alt="GitHub logo" width={24} height={24} />
+          Sign in with Github
+        </Button>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-4 mt-4 form">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-4 mt-2 form">
             {(!isSignIn) && (
-              <FormField 
-                control={form.control} 
-                name="name" 
+              <FormField
+                control={form.control}
+                name="name"
                 label="Username"
                 placeholder="Your new username"
                 type="text"
@@ -135,11 +179,11 @@ const AuthForm = ({type}: {type: FormType}) => {
               name="password"
               label="Password"
               placeholder="Your password"
-              type={showPassword? 'text' : 'password'}
+              type={showPassword ? 'text' : 'password'}
             />
             <div className="items-top flex space-x-2">
-              <Checkbox 
-                id="show-password" 
+              <Checkbox
+                id="show-password"
                 checked={showPassword}
                 onCheckedChange={() => setShowPassword(!showPassword)}
               />
@@ -152,16 +196,22 @@ const AuthForm = ({type}: {type: FormType}) => {
                 </label>
               </div>
             </div>
-            <Button type="submit" className="mt-6">{(isSignIn)? 'Sign in' : "Create an account"}</Button>
+            <Button
+              type="submit"
+              className="mt-6"
+              disabled={isLoading}
+            >
+              {isLoading ? "Processing..." : (isSignIn ? 'Sign in' : "Create an account")}
+            </Button>
           </form>
         </Form>
         <p className="text-center mt-[-2]">
-          {(isSignIn) ? 'Have an account already?' : 'Have an account already?'}
-          <Link 
-            href = {(isSignIn) ? '/sign-up' : 'sign-in'}
-            className = "font-bold text-user-primary ml-1"
+          {(isSignIn) ? 'Don\'t have an account?' : 'Have an account already?'}
+          <Link
+            href={(isSignIn) ? '/sign-up' : '/sign-in'}
+            className="font-bold text-user-primary ml-1"
           >
-            {(isSignIn)? "Sign up" : "Sign in"}
+            {(isSignIn) ? "Sign up" : "Sign in"}
           </Link>
         </p>
       </div>
