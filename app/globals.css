@@ -146,19 +146,19 @@
   }
 
   p {
-    @apply text-light-100;
+    @apply max-sm:text-sm text-light-100;
   }
 
   h1 {
-    @apply text-4xl font-bold text-light-100;
+    @apply text-4xl max-sm:text-2xl font-bold text-light-100;
   }
 
   h2 {
-    @apply text-3xl font-semibold text-light-100;
+    @apply text-3xl max-sm:text-xl font-semibold text-light-100;
   }
 
   h3 {
-    @apply text-2xl font-semibold text-light-100;
+    @apply text-2xl max-sm:text-base font-semibold text-light-100;
   }
 
   ul {

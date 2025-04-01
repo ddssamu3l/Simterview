@@ -49,7 +49,7 @@ Output: ["1","2","Fizz"]`],
     id: "4",
     name: "Frontend Intern Behavioral",
     length: 30,
-    difficulty: 'Beginner',
+    difficulty: 'Intern',
     description: "Test your knowledge of basic frontend frameworks",
     createdAt: "03/30/2025",
     questions: [

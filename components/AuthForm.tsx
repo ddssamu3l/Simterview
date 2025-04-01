@@ -49,8 +49,8 @@ const AuthForm = ({ type }: { type: FormType }) => {
   async function signInWithGitHub() {
     try {
       setIsLoading(true);
+      // github popup sign in
       const provider = new GithubAuthProvider();
-
       const result = await signInWithPopup(auth, provider);
 
       if (result.user) {
@@ -63,9 +63,16 @@ const AuthForm = ({ type }: { type: FormType }) => {
         } else {
           toast.error(authResult.message || "Authentication failed");
         }
+      }else{
+        console.error("Error: no user returned from GitHub sign in");
+        toast.error("GitHub authentication failed");
       }
     } catch (error: any) {
       console.error("GitHub auth error:", error);
+      if (error.code === "auth/account-exists-with-different-credential") {
+        toast.error("Account already exists with another sign in method. Please sign in again with a different sign in method.")
+        return;
+      }
       toast.error(error.message || "GitHub authentication failed");
     } finally {
       setIsLoading(false);
