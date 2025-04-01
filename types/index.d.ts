@@ -27,7 +27,6 @@ interface Interview {
   createdAt: string;
   type: InterviewType;
   finalized: boolean;
-  pass?: boolean;
 }
 
 interface CreateFeedbackParams {
@@ -44,7 +43,6 @@ interface User {
 }
 
 interface InterviewCardProps {
-  key: string;
   id: string;
   name: string;
   length: number;

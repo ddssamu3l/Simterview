@@ -1,4 +1,4 @@
-export const dummyInterviews: Interview[] = [
+export const dummyInterviews: InterviewCardProps[] = [
   {
     id: "1",
     name: "Tell me about yourself",

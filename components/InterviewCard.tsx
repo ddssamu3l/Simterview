@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link';
 import { Button } from './ui/button';
 import DisplayTechIcons from './DisplayTechIcons';
+import { cn } from '@/lib/utils';
 
 const InterviewCard = ({id, name, length, difficulty, description, createdAt, questions, techStack, type, finalized, pass}: InterviewCardProps) => {
   const feedback = null as Feedback null;
@@ -17,7 +18,7 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
       }>
         <div className="card-interview border-b">
           <div className="flex">
-            <div className="relative flex justify-between w-full mx-2">
+            <div className="relative flex justify-between w-full">
               <p className="badge-text flex">
                 {(pass != null && pass != undefined) && (
                   pass ? (
@@ -44,9 +45,9 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
             </p>
           )}
         </div>
-        <div className="interview-description mx-2">
-          <DisplayTechIcons techStack={techStack}></DisplayTechIcons>
+        <div className={cn("interview-description mx-4", techStack.length > 0 ? "justify-between text-start" : "justify-center")}>
           <p className="text-sm">{description}</p>
+          <DisplayTechIcons techStack={techStack}></DisplayTechIcons>
         </div>
       </Link>
     </div>

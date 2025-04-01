@@ -296,7 +296,7 @@
   }
 
   .interview-description{
-    @apply flex items-center justify-center pt-2
+    @apply flex items-center pt-2
   }
 
   .progress {
@@ -304,7 +304,7 @@
   }
 
   .tech-tooltip {
-    @apply absolute bottom-full mb-1 hidden group-hover:flex px-2 py-1 text-xs text-white rounded-md shadow-md border;
+    @apply absolute bottom-full mb-1 hidden group-hover:flex py-1 text-xs text-white rounded-md shadow-md border;
   }
 
   .card-interview {
