@@ -1,5 +1,5 @@
 "use client"
-import React from 'react'
+import React, { useState } from 'react'
 import { z } from 'zod'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form'
 import { useForm } from "react-hook-form"
@@ -8,10 +8,12 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Input } from './ui/input'
 import { Textarea } from './ui/textarea'
 import { Button } from './ui/button'
+import { toast } from 'sonner'
 
 const interviewFormSchema = z.object({
   type: z.enum(["behavioral", "technical"]),
   role: z.string().min(1, "Role is required"),
+  length: z.number().int().min(25).max(60),
   difficulty: z.enum(["Intern", "Junior/New Grad", "Mid Level", "Senior"]),
   jobDescription: z.string().optional(),
 })
@@ -22,16 +24,29 @@ const CustomInterviewForm = () => {
     defaultValues: {
       type: "behavioral",
       role: "",
-      difficulty: "Junior/New Grad",
+      length: 30,
+      difficulty: "Intern",
       jobDescription: "",
     },
   })
 
   const isBehavioral = form.watch("type") === "behavioral";
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  async function onSubmit(values: z.infer<typeof interviewFormSchema>) {
-    console.log(values)
-    
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async function onSubmit({type, role, length, difficulty, jobDescription}: z.infer<typeof interviewFormSchema>) {
+    setIsGenerating(true);
+
+    try{
+
+    }catch(error){
+      console.error("Error generating custom interview: " + error);
+      toast.error("Error generating interview: " + error);
+      return;
+    }finally{
+      setIsGenerating(false);
+      toast.success("Interview generated successfully!");
+    }
   }
 
   return (
@@ -79,6 +94,35 @@ const CustomInterviewForm = () => {
                     <FormLabel className="label">Role*</FormLabel>
                     <FormControl>
                       <Input placeholder="Write interview role..."{...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="length"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="label">Length*</FormLabel>
+                    <FormControl>
+                      <Select
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        defaultValue={field.value.toString()}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select interview duration" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectItem value="25">25 minutes</SelectItem>
+                            <SelectItem value="30">30 minutes</SelectItem>
+                            <SelectItem value="45">45 minutes</SelectItem>
+                            <SelectItem value="60">60 minutes</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -139,7 +183,7 @@ const CustomInterviewForm = () => {
                   type="submit"
                   className="w-full py-3 rounded-md font-bold"
                 >
-                  Create Interview
+                  {isGenerating? "Generating..." : "Create Interview"}
                 </Button>
               </div>
             </form>
