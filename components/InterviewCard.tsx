@@ -37,7 +37,7 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
         <div className="interview-title border-b flex flex-col items-center relative">
           <h2 className="text-center">{name}</h2>
           {(pass != null) && (
-            <p className="text-xs font-semibold absolute bottom-1 right-1 text-slate-400">
+            <p className="text-xs font-bold absolute bottom-1 right-1 text-slate-400">
               Feedback available
             </p>
           )}

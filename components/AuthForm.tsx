@@ -155,7 +155,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
         </div>
         <h3 className="text-light-100 text-xl lg:text-2xl">Practice SWE interviews with AI</h3>
         <Button
-          className="bg-transparent hover:bg-dark-300 border text-light-100 w-full mt-4 font-semibold"
+          className="bg-transparent hover:bg-dark-300 border text-light-100 w-full mt-4 font-bold"
           onClick={signInWithGitHub}
           disabled={isLoading}
         >

@@ -137,7 +137,7 @@ const CustomInterviewForm = () => {
               <div className="pt-4">
                 <Button
                   type="submit"
-                  className="w-full py-3 rounded-md font-semibold"
+                  className="w-full py-3 rounded-md font-bold"
                 >
                   Create Interview
                 </Button>

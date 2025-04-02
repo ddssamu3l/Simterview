@@ -1,12 +1,12 @@
 import CustomInterviewForm from '@/components/CustomInterviewForm'
 import React from 'react'
 
-const page = () => {
+const customInterview = () => {
   return (
-    <div>
+    <>
       <CustomInterviewForm />
-    </div>
+    </>
   )
 }
 
-export default page
+export default customInterview

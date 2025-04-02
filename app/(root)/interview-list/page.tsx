@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import React from 'react'
 
-const interviews = async () => {
+const interviewList = async () => {
   const userIsAuthenticated = await isAuthenticated();
   if (!userIsAuthenticated) redirect("/sign-in");
 
@@ -15,7 +15,7 @@ const interviews = async () => {
       <h1 className="sm:text-5xl text-3xl">Interviews List</h1>
       <p>Pick an interview to start your session</p>
       <p>or</p>
-      <Button className="btn-custom-interview font-semibold mx-4">
+      <Button className="btn-custom-interview font-bold mx-4">
         <Link href="/custom-interview">
           Custom interview from job description
         </Link>
@@ -29,4 +29,4 @@ const interviews = async () => {
   )
 }
 
-export default interviews
+export default interviewList
