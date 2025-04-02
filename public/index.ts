@@ -1,7 +1,7 @@
 export const dummyInterviews: InterviewCardProps[] = [
   {
     id: "1",
-    name: "Tell me about yourself",
+    name: "Self-Introduction",
     length: 5,
     difficulty: 'Beginner',
     description: "A quick 5-minute self-intriduction to get started",

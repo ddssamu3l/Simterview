@@ -155,12 +155,15 @@ const AuthForm = ({ type }: { type: FormType }) => {
         </div>
         <h3 className="text-light-100 text-xl lg:text-2xl">Practice SWE interviews with AI</h3>
         <Button
-          className="bg-transparent hover:bg-dark-300 border text-light-100 w-full mt-4"
+          className="bg-transparent hover:bg-dark-300 border text-light-100 w-full mt-4 font-semibold"
           onClick={signInWithGitHub}
           disabled={isLoading}
         >
           <Image src="/covers/github.svg" alt="GitHub logo" width={24} height={24} />
-          Sign in with Github
+          {(isSignIn)
+            ? <p>Sign in with GitHub</p>
+            : <p>Sign up with GitHub</p>
+          }
         </Button>
 
         <Form {...form}>
@@ -205,7 +208,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
             </div>
             <Button
               type="submit"
-              className="mt-6"
+              className="mt-6 font-bold"
               disabled={isLoading}
             >
               {isLoading ? "Processing..." : (isSignIn ? 'Sign in' : "Create an account")}
