@@ -57,7 +57,7 @@ interface InterviewCardProps {
 }
 
 interface AgentProps {
-  userName: string;
+  username: string;
   userId?: string;
   interviewId?: string;
   feedbackId?: string;
