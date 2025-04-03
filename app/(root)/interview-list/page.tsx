@@ -1,14 +1,10 @@
 import InterviewCard from '@/components/InterviewCard'
 import { Button } from '@/components/ui/button';
-import { isAuthenticated } from '@/lib/actions/auth.action';
 import { dummyInterviews } from '@/public'
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import React from 'react'
 
 const interviewList = async () => {
-  const userIsAuthenticated = await isAuthenticated();
-  if (!userIsAuthenticated) redirect("/sign-in");
 
   return (
     <section className="flex flex-col gap-6 mt-8 text-center">

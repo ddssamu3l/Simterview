@@ -86,7 +86,7 @@ const CustomInterviewForm = () => {
 
   return (
     <div className="flex items-center justify-center mx-auto max-w-7xl h-screen max-sm:px-4 max-sm:py-8 mt-[-96]">
-      <div className="card-border max-sm:border-none min-w-[380px] lg:min-w-[566px]">
+      <div className="card-border max-sm:border-none min-w-[300px] lg:min-w-[566px]">
         <div className="flex flex-col gap-6 card py-14 px-10">
           <div className="flex flex-row gap-2 justify-center">
             <h1 className="text-light-100">Custom Interview</h1>
@@ -199,7 +199,7 @@ const CustomInterviewForm = () => {
                   name="jobDescription"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="label">Job Description</FormLabel>
+                      <FormLabel className="label">Job Description (optional)</FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Paste job description here..."

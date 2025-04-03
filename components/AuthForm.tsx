@@ -159,7 +159,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
           onClick={signInWithGitHub}
           disabled={isLoading}
         >
-          <Image src="/covers/github.svg" alt="GitHub logo" width={24} height={24} />
+          <Image src="/github.svg" alt="GitHub logo" width={24} height={24} />
           {(isSignIn)
             ? <p>Sign in with GitHub</p>
             : <p>Sign up with GitHub</p>

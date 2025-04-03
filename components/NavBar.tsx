@@ -7,7 +7,7 @@ const NavBar = ({username}: {username: string}) => {
   return (
     <div className="w-full border-b">
       <nav className="flex justify-between">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 hover: mouse-pointer">
           <Image
             src="/icon.png"
             alt="logo"
@@ -18,7 +18,7 @@ const NavBar = ({username}: {username: string}) => {
         </Link>
         {(username !== "") 
         ? <h2 className="flex items-center font-bold max-sm:hidden">{username}</h2> 
-        : <Button className="font-bold sm:w-[120px]">
+        : <Button className="font-bold sm:w-[120px] hover:mouse-pointer">
             <Link href="/sign-in">
               Sign-In
             </Link>
