@@ -83,7 +83,6 @@ const AuthForm = ({ type }: { type: FormType }) => {
     try {
       setIsLoading(true);
       if (type === 'sign-up') {
-        console.log("Sign up attempt: " + values);
         const { name, email, password } = values;
 
         const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
@@ -115,7 +114,6 @@ const AuthForm = ({ type }: { type: FormType }) => {
         });
         router.push("/");
       } else {
-        console.log("Sign in attempt: " + values);
         const { email, password } = values;
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
@@ -131,7 +129,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
         router.push("/");
       }
     } catch (error: any) {
-      console.log(error);
+      console.error(error);
       toast.error(error.message);
     } finally {
       setIsLoading(false);

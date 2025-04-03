@@ -19,7 +19,7 @@ export async function handleGitHubAuth(idToken: string) {
     if (!userDocSnapshot.exists) {
       await db.collection('users').doc(uid).set({
         email: userRecord.email,
-        name: userRecord.displayName || "New User",
+        name: userRecord.displayName || userRecord.email,
         createdAt: new Date().toISOString(),
         authProvider: 'github'
       });

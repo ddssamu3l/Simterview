@@ -56,6 +56,14 @@ interface InterviewCardProps {
   pass?: boolean;
 }
 
+interface InterviewGenerationProps {
+  type: InterviewType;
+  role: string;
+  length: number;
+  difficulty: InterviewDifficulty;
+  jobDescription: string | undefined;
+}
+
 interface AgentProps {
   username: string;
   userId?: string;
