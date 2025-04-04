@@ -81,7 +81,7 @@ export async function generateCustomInterview(type: string, role: string, length
     const res = await db.collection("interviews").add(newInterview);
     console.log("New custom interview added: " + res.id);
 
-    return { success: true, status: 200 };
+    return { success: true, id: res.id, status: 200 };
   }catch(e){
     console.error("Error generating custom interview instructions: " + e);
     return { success: false, status: 500, error: e };

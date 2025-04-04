@@ -112,7 +112,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
         await signIn({
           email, idToken,
         });
-        router.push("/");
+        router.push("/interview-list");
       } else {
         const { email, password } = values;
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -126,7 +126,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
         await signIn({
           email, idToken,
         })
-        router.push("/");
+        router.push("/interview-list");
       }
     } catch (error: any) {
       console.error(error);

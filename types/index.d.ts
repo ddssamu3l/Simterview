@@ -14,7 +14,7 @@ interface Feedback {
 }
 
 type InterviewDifficulty = 'Beginner' | 'Intern' | 'Junior/New Grad' | "Mid Level" | "Senior";
-type InterviewType = 'Behavioral' | 'Technical' | 'Mixed'
+type InterviewType = 'behavioral' | 'technical' | 'mixed'
 
 interface Interview {
   id: string;
@@ -67,9 +67,9 @@ interface InterviewGenerationProps {
 interface AgentProps {
   username: string;
   userId?: string;
-  interviewId?: string;
+  interviewId: string;
   feedbackId?: string;
-  type: "generate" | "interview";
+  type: InterviewType;
   questions?: string[];
 }
 
