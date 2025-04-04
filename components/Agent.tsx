@@ -20,10 +20,11 @@ interface SavedMessage{
 interface InterviewData {
   length: number;
   questions: string[];
+  type: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const Agent =  ({username, userId, interviewId, type}: AgentProps) => {
+const Agent =  ({username, userId, interviewId}: AgentProps) => {
   const router = useRouter();
   const [isSpeaking, setisSpeaking] = useState(false);
   const [callStatus, setcallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
@@ -36,11 +37,12 @@ const Agent =  ({username, userId, interviewId, type}: AgentProps) => {
       try {
         const response = await getInterview(interviewId);
         if (response.success && response.data) {
-          const { length, questions } = response.data;
-          console.log(questions);
-          const currentInterview = { length, questions };
+          const { length, questions, type } = response.data;
+          console.log(response.data);
+          const currentInterview = { length, questions, type };
           setInterview(currentInterview);
         }
+        console.log("Interview details fetched successfully: ");
       } catch (error) {
         console.error("Error fetching interview details:", error);
       }

@@ -11,12 +11,13 @@ export async function getInterview(interviewId: string){
     }
     console.log(interviewSnapshot.data());
 
-    const { length, questions } = interviewSnapshot.data() as {
+    const { length, questions, type } = interviewSnapshot.data() as {
       length: number,
       questions: string[];
+      type: string;
     };
     
-    return { success: true, status: 200, data: {length, questions} };
+    return { success: true, status: 200, data: {length, questions, type} };
   }catch(error){
     console.error("Error fetching interview details: " + error);
     return { success: false, status: 500 }

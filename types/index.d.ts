@@ -69,7 +69,6 @@ interface AgentProps {
   userId?: string;
   interviewId: string;
   feedbackId?: string;
-  type: InterviewType;
   questions?: string[];
 }
 

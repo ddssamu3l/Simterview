@@ -11,7 +11,7 @@ import { Button } from './ui/button'
 import { toast } from 'sonner'
 import { generateCustomInterview } from '@/app/api/google/generate/route'
 import { auth } from '@/firebase/client'
-import { redirect, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 const interviewFormSchema = z.object({
   type: z.enum(["behavioral", "technical"]),
@@ -52,12 +52,7 @@ const CustomInterviewForm = () => {
       // generate a new interview and get its id from the backend
       const { id } = await generateCustomInterview(type, role, length, difficulty, jobDescription, uid);
       toast.success("Interview generated successfully!");
-      if (type === "behavioral") {
-        router.push(`/live-interview/behavioral/${id}`);
-      } else {
-        router.push(`/live-interview/technical/${id}`);
-      }
-      
+      router.push(`/live-interview/${id}`);
     }catch(error){
       if (error instanceof Error && error.message !== "NEXT_REDIRECT"){
         console.error("Error generating custom interview: " + error);
