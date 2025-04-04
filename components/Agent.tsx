@@ -33,6 +33,7 @@ const Agent =  ({username, userId, interviewId}: AgentProps) => {
   const [interview, setInterview] = useState<InterviewData | null>(null);
 
   useEffect(() => {
+    // the length is the length of the interivew. There should be a timer that automatically ends the call when the time's up. 'length' is the allowed time of the interview in minutes. "questions" is a string[] of questions that the AI interviewer will ask the candidate. Type can either be "behavioral" or "technical".
     async function fetchInterview() {
       try {
         const response = await getInterview(interviewId);
@@ -49,41 +50,7 @@ const Agent =  ({username, userId, interviewId}: AgentProps) => {
     }
 
     fetchInterview();
-    // const onCallStart = () => setcallStatus(CallStatus.ACTIVE);
-    // const onCallEnd = () => setcallStatus(CallStatus.FINISHED);
-
-    // const onMessage = (message: Message) => {
-    //   if(message.type === 'transcript' && message.transcriptType === 'final'){
-    //     const newMessage = { role: message.role, content: message.transcript }
-
-    //     setMessages((prev) => [...prev, newMessage]);
-    //   }
-    // }
-
-    // const onSpeechStart = () => setisSpeaking(true);
-    // const onSpeechEnd = () => setisSpeaking(false);
-
-    // const onError = (error: Error) => console.log("Error: " + error);
-
-
   }, [interviewId]);
-
-  // useEffect(() => {
-  //   if(callStatus === CallStatus.FINISHED){
-  //     router.push(`/u/${userId}`);
-  //   }
-
-  //   const handleCall = async() => {
-  //     setcallStatus(CallStatus.CONNECTING);
-
-      
-  //   }
-
-  //   const handleDisconnect = async() => {
-  //     setcallStatus(CallStatus.FINISHED);
-
-  //   }
-  // }, [messages, callStatus, type, userId])
   
   return (
     <>
