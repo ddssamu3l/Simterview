@@ -21,6 +21,7 @@ export async function generateCustomInterview(type: string, role: string, length
 
       If "technical":
       - Generate EXACTLY ONE coding problem suited to difficulty:
+        * Beginner: LeetCode easy difficulty
         * Intern: easier medium
         * Junior/New Grad: standard medium
         * Mid Level: harder medium
@@ -62,6 +63,7 @@ export async function generateCustomInterview(type: string, role: string, length
           },
           required: ["description", "techStack", "questions"],
         },
+        temperature: 1,
       },
     });
     const data = JSON.parse(response.text!);

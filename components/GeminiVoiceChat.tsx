@@ -4,6 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { MultimodalLiveClient } from '@/lib/multimodal-live-client';
 import { AudioRecorder } from '@/lib/audio-recorder';
 import { AudioStreamer } from '@/lib/audio-streamer';
+import Image from 'next/image'
+import { cn } from '@/lib/utils';
+import { Button } from './ui/button';
+import { interviewerSystemPrompt } from '@/public';
 
 interface Message {
   role: 'user' | 'assistant' | "system";
@@ -18,7 +22,9 @@ interface Message {
 function GeminiVoiceChat() {
   const [connected, setConnected] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [lastAssistantMessage, setLastAssistantMessage] = useState<Message>();
   const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
+  const [isSpeaking, setisSpeaking] = useState(false);
 
   // Type your refs with the appropriate classes or null
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
@@ -32,6 +38,8 @@ function GeminiVoiceChat() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenCaptureStreamRef = useRef<MediaStream | null>(null);
   const screenCaptureIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const interviewVoices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede"];
 
   // Initialize client and audio streamer
   useEffect(() => {
@@ -53,11 +61,14 @@ function GeminiVoiceChat() {
       // Setup listeners for content and audio events
       clientRef.current.on('content', (data: any) => {
         setMessages(prev => [...prev, { role: 'assistant', content: data }]);
+        setLastAssistantMessage(data.text);
+        console.log("Assistant transcript: " + data.text);
       });
 
       clientRef.current.on('audio', (audioData: any) => {
         if (audioStreamerRef.current) {
           audioStreamerRef.current.addPCM16(new Uint8Array(audioData));
+          setisSpeaking(true);
         }
       });
 
@@ -84,8 +95,24 @@ function GeminiVoiceChat() {
   // Connect to the API
   const handleConnect = async () => {
     try {
+      // select a random voice as the interviewer's voice
+      const voiceNumber = Math.floor(Math.random() * 5);
+
       await clientRef.current?.connect({
         model: "models/gemini-2.0-flash-exp",
+        systemInstruction: {
+          parts: [{text: interviewerSystemPrompt}],
+        },
+        generationConfig:{
+          temperature: 1,
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: interviewVoices[voiceNumber],
+              },
+            },
+          },
+        },
       });
       setConnected(true);
     } catch (error) {
@@ -97,6 +124,7 @@ function GeminiVoiceChat() {
   const handleDisconnect = () => {
     clientRef.current?.disconnect();
     setConnected(false);
+    setisSpeaking(false);
     
     // Stop audio recording if active
     if (audioRecorderRef.current) {
@@ -272,116 +300,148 @@ function GeminiVoiceChat() {
   };
 
   return (
-    <div className="">
-      {/* Hidden video and canvas elements for screen capture */}
-      <video 
-        ref={hiddenVideoRef} 
-        className="hidden" 
-        autoPlay 
-        muted
-      />
-      <canvas 
-        ref={canvasRef} 
-        className="hidden" 
-      />
-      
-      {/* Screen sharing preview (shown only when active) */}
-      {screenSharing && (
-        <div className="fixed bottom-4 right-4 border border-gray-300 rounded shadow-lg overflow-hidden z-10">
-          <div className="bg-black text-white text-xs p-1 flex justify-between items-center">
-            <span>Screen sharing (AI can see this)</span>
-            <button 
-              onClick={stopScreenCapture}
-              className="bg-red-500 text-white px-2 py-0.5 rounded text-xs"
-            >
-              Stop
-            </button>
+    <>
+      <div className="call-view">
+        <div className="card-interviewer">
+          <div className="avatar">
+            <Image src="/icon.png" alt="vapi" width={65} height={54} className="object-cover" />
+            {isSpeaking && <span className="animate-speak"></span>}
           </div>
-          <video 
-            ref={videoRef} 
-            className="w-64 h-auto" 
-            autoPlay 
-            muted
-          />
+          <h3>AI Recruiter</h3>
+        </div>
+
+        <div className="card-border border-primary-200/50">
+          <div className="card-content ">
+            <Image src="/icon.png" alt="user avatar" width={540} height={540} className="rounded-full object-cover size-[120px]" />
+            {isSpeaking && <span className="animate-speak"></span>}
+            <h3>You</h3>
+          </div>
+          
+        </div>
+      </div>
+      
+      {lastAssistantMessage?.content.text && (
+        <div className="transcript-border">
+          <div className="transcript">
+            <p className={cn('transition-opacity duration-500 opacity-0', 'animate-fade-In opacity-100')}>
+              {lastAssistantMessage?.content.text}
+            </p>
+          </div>
         </div>
       )}
 
-      <div className="controls flex flex-wrap gap-2 mb-4">
-        {!connected ? (
-          <button 
-            onClick={handleConnect}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            Start Chat
-          </button>
-        ) : (
-          <>
-            <button 
-              onClick={handleDisconnect}
-              className="bg-red-500 text-white px-4 py-2 rounded"
-            >
-              End Chat
-            </button>
-            <button 
-              onClick={toggleMicrophone}
-              className={`${audioEnabled ? 'bg-red-400' : 'bg-green-500'} text-white px-4 py-2 rounded`}
-            >
-              {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
-            </button>
-            {!screenSharing ? (
-              <button 
-                onClick={startScreenCapture}
-                className="bg-purple-500 text-white px-4 py-2 rounded"
-              >
-                Share Screen
-              </button>
-            ) : (
-              <button 
+      <div className="w-full flex justify-center gap-6 mt-12">
+        {/* Hidden video and canvas elements for screen capture */}
+        <video
+          ref={hiddenVideoRef}
+          className="hidden"
+          autoPlay
+          muted
+        />
+        <canvas
+          ref={canvasRef}
+          className="hidden"
+        />
+
+        {/* Screen sharing preview (shown only when active) */}
+        {screenSharing && (
+          <div className="fixed bottom-4 right-4 border border-gray-300 rounded shadow-lg overflow-hidden z-10">
+            <div className="bg-black text-white text-xs p-1 flex justify-between items-center">
+              <span>Screen sharing (AI can see this)</span>
+              <button
                 onClick={stopScreenCapture}
-                className="bg-red-400 text-white px-4 py-2 rounded"
+                className="bg-red-500 text-white px-2 py-0.5 rounded text-xs"
               >
-                Stop Sharing
+                Stop
               </button>
-            )}
-          </>
-        )}
-      </div>
-
-      <div className="conversation w-full max-w-2xl h-96 overflow-y-auto border border-gray-300 rounded p-4 mb-4">
-        {messages.map((msg, index) => (
-          <div key={index} className={`message p-2 mb-2 rounded ${msg.role === 'user' ? 'bg-blue-100 ml-auto' : 'bg-gray-100'} max-w-[80%]`}>
-            {msg.content.modelTurn?.parts?.[0]?.text || msg.content.text || "[Non-text content]"}
+            </div>
+            <video
+              ref={videoRef}
+              className="w-64 h-auto"
+              autoPlay
+              muted
+            />
           </div>
-        ))}
-      </div>
+        )}
 
-      {connected && (
-        <div className="message-input w-full max-w-2xl flex">
-          <input
-            type="text"
-            placeholder="Type a message..."
-            className="flex-1 border border-gray-300 rounded-l px-4 py-2"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const input = e.target as HTMLInputElement;
+        <div className="controls flex flex-wrap gap-6 mb-4 font-bold rounded-sm">
+          {!connected ? (
+            <Button
+              onClick={handleConnect}
+              className="w-[150px] bg-white text-black font-bold px-4 py-2"
+            >
+              Start Chat
+            </Button>
+          ) : (
+            <>
+              <Button
+                onClick={handleDisconnect}
+                  className="w-[150px] bg-red-500 text-white font-semibold"
+              >
+                End Chat
+              </Button>
+              <Button
+                onClick={toggleMicrophone}
+                  className={`${audioEnabled ? 'bg-red-400' : 'bg-green-500'} w-[150px] text-white font-semibold`}
+              >
+                {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
+              </Button>
+              {!screenSharing ? (
+                <Button
+                  onClick={startScreenCapture}
+                    className="w-[150px] bg-purple-500 text-white font-semibold"
+                >
+                  Share Screen
+                </Button>
+              ) : (
+                <Button
+                  onClick={stopScreenCapture}
+                      className="w-[150px] bg-red-400 text-white font-semibold"
+                >
+                  Stop Sharing
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+
+          
+        {/* <div className="conversation w-full max-w-2xl h-96 overflow-y-auto border border-gray-300 rounded p-4 mb-4">
+          {messages.map((msg, index) => (
+            <div key={index} className={`message p-2 mb-2 rounded ${msg.role === 'user' ? 'bg-blue-100 ml-auto' : 'bg-gray-100'} max-w-[80%]`}>
+              {msg.content.modelTurn?.parts?.[0]?.text || msg.content.text || "[Non-text content]"}
+            </div>
+          ))}
+        </div> */}
+
+        {/* {connected && (
+          <div className="message-input w-full max-w-2xl flex">
+            <input
+              type="text"
+              placeholder="Type a message..."
+              className="flex-1 border border-gray-300 rounded-l px-4 py-2"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const input = e.target as HTMLInputElement;
+                  sendMessage(input.value);
+                  input.value = '';
+                }
+              }}
+            />
+            <button
+              onClick={(e) => {
+                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
                 sendMessage(input.value);
                 input.value = '';
-              }
-            }}
-          />
-          <button
-            onClick={(e) => {
-              const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-              sendMessage(input.value);
-              input.value = '';
-            }}
-            className="bg-blue-500 text-white px-4 py-2 rounded-r"
-          >
-            Send
-          </button>
-        </div>
-      )}
-    </div>
+              }}
+              className="bg-blue-500 text-white px-4 py-2 rounded-r"
+            >
+              Send
+            </button>
+          </div>
+        )} */}
+      </div>
+    </>
   );
 }
 
