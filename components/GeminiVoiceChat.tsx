@@ -328,9 +328,9 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   };
 
   return (
-    <>
-      <div className="w-full flex justify-center gap-8 mb-8">
-        <div className="card-interviewer w-[40%] flex flex-col items-center p-4 border rounded-lg">
+    <div className="flex flex-col call-view">
+      <div className="flex flex-row gap-4 w-6xl max-w-[90vw]">
+        <div className="card-interviewer">
           <div className="avatar">
             <Image src="/icon.png" alt="vapi" width={65} height={54} className="object-cover" />
             {isSpeaking && <span className="animate-speak"></span>}
@@ -338,15 +338,14 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           <h3>AI Recruiter</h3>
         </div>
 
-        <div className="card-border border-primary-200/50 w-[40%] flex flex-col items-center p-4">
-          <div className="card-content flex flex-col items-center">
+        <div className="card-border border-primary-200/50 ">
+          <div className="card-content">
             <Image src="/icon.png" alt="user avatar" width={540} height={540} className="rounded-full object-cover size-[120px]" />
-            {isSpeaking && <span className="animate-speak"></span>}
             <h3>{username}</h3>
           </div>
         </div>
       </div>
-
+        
       <div className="w-full flex justify-center gap-6 mb-4 font-bold rounded-sm">
         {!connected ? (
           <Button
@@ -421,7 +420,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           </div>
         )}
       </div>
-    </>
+    </div>
   )
 }
 

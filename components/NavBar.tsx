@@ -5,7 +5,7 @@ import { Button } from './ui/button'
 
 const NavBar = ({username}: {username: string}) => {
   return (
-    <div className="w-full border-b">
+    <div className="w-full border-b h-[7vh]">
       <nav className="flex justify-between">
         <Link href="/" className="flex items-center gap-2 hover: mouse-pointer">
           <Image

@@ -19,7 +19,7 @@ function ClientLiveInterview({
   userId?: string;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="h-[800px] flex items-center justify-center">
       <GeminiVoiceChat username={username} userId={userId} interviewId={id} />
     </div>
   );
