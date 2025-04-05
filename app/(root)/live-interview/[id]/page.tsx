@@ -1,6 +1,6 @@
-import Agent from '@/components/Agent'
-import { getCurrentUser } from '@/lib/actions/auth.action'
-import React from 'react'
+import { getCurrentUser } from '@/lib/actions/auth.action';
+import React from 'react';
+import ClientLiveInterview from './client';
 
 type PageProps = {
   params: {
@@ -12,11 +12,7 @@ const Page = async ({ params }: PageProps) => {
   const { id } = await params;
   const user = await getCurrentUser();
 
-  return (
-    <div>
-      <Agent username={user?.name || "You"} userId={user?.id} interviewId={id}/>
-    </div>
-  );
-}
+  return <ClientLiveInterview id={id} username={user?.name || "You"} userId={user?.id} />;
+};
 
 export default Page;

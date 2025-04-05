@@ -52,17 +52,29 @@ export type GetAudioContextOptions = AudioContextOptions & {
   id?: string;
 };
 
-const map: Map<string, AudioContext> = new Map();
+// Only create the map on the client side
+const map: Map<string, AudioContext> = typeof window !== 'undefined' ? new Map() : null as unknown as Map<string, AudioContext>;
 
 export const audioContext: (
   options?: GetAudioContextOptions,
 ) => Promise<AudioContext> = (() => {
-  const didInteract = new Promise((res) => {
-    window.addEventListener("pointerdown", res, { once: true });
-    window.addEventListener("keydown", res, { once: true });
-  });
+  // Check if we're running on the client side
+  const isClient = typeof window !== 'undefined';
+  
+  // Only initialize this on the client
+  const didInteract = isClient 
+    ? new Promise((res) => {
+        window.addEventListener("pointerdown", res, { once: true });
+        window.addEventListener("keydown", res, { once: true });
+      })
+    : Promise.resolve(); // Dummy promise for server side
 
   return async (options?: GetAudioContextOptions) => {
+    // Return a dummy object during server-side rendering
+    if (!isClient) {
+      throw new Error("AudioContext is only available in the browser");
+    }
+    
     try {
       const a = new Audio();
       a.src =
@@ -96,8 +108,13 @@ export const audioContext: (
   };
 })();
 
-export const blobToJSON = (blob: Blob) =>
-  new Promise((resolve, reject) => {
+export const blobToJSON = (blob: Blob) => {
+  // Check if we're running on the client side
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error("FileReader is only available in the browser"));
+  }
+  
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       if (reader.result) {
@@ -109,8 +126,14 @@ export const blobToJSON = (blob: Blob) =>
     };
     reader.readAsText(blob);
   });
+};
 
 export function base64ToArrayBuffer(base64: string) {
+  // Check if we're running on the client side
+  if (typeof window === 'undefined') {
+    throw new Error("atob is only available in the browser");
+  }
+  
   var binaryString = atob(base64);
   var bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {

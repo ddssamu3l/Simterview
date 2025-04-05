@@ -39,8 +39,6 @@ const CustomInterviewForm = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function onSubmit({type, role, length, difficulty, jobDescription}: z.infer<typeof interviewFormSchema>) {
-    
-
     try{
       setIsGenerating(true);
       const user = auth.currentUser;
@@ -51,8 +49,12 @@ const CustomInterviewForm = () => {
       const uid = user.uid;
       // generate a new interview and get its id from the backend
       const { id } = await generateCustomInterview(type, role, length, difficulty, jobDescription, uid);
-      toast.success("Interview generated successfully!");
-      router.push(`/live-interview/${id}`);
+      if(id){
+        toast.success("Interview generated successfully!");
+        router.push(`/live-interview/${id}`);
+      }else{
+        throw new Error
+      }
     }catch(error){
       if (error instanceof Error && error.message !== "NEXT_REDIRECT"){
         console.error("Error generating custom interview: " + error);

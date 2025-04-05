@@ -2,7 +2,7 @@
 import { db } from "@/firebase/admin";
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY });
 
 export async function generateCustomInterview(type: string, role: string, length: number, difficulty: string, jobDescription: string | undefined, uid: string){
   try{
@@ -16,25 +16,19 @@ export async function generateCustomInterview(type: string, role: string, length
       If "behavioral":
       - Provide EXACTLY 5-7 behavioral questions covering: personal background, teamwork, problem-solving, leadership, adaptability.
       - DO NOT include coding/technical algorithm questions.
+      - Provide a mix of generic/standard questions as well as some nuanced questions.
       - If a job description is provided, extract 1-2 key technologies (techStack).
       - Behavioral questions are going to be read by a voice assisrtant so do not use '/' or '*' or any characters that will break text-to-speech algorithms.
 
       If "technical":
-      - Generate EXACTLY ONE coding problem suited to difficulty:
+      - Find 5 LeetCode problems suited to difficulty:
         * Beginner: LeetCode easy difficulty
         * Intern: easier medium
         * Junior/New Grad: standard medium
         * Mid Level: harder medium
         * Senior: hard
-      - Include a problem description, 2-3 example inputs/outputs, constraints, and a follow-up—all in a SINGLE STRING (no nested JSON).
-      - DO NOT include any behavioral questions.
-
-      Technical Example:
-      "Given an array of integers nums and an integer target, return indices of two numbers that add up to target. Assume one solution exists and each element is used only once. 
-      Example 1:
-      Input: nums = [2,7,11,15], target = 9 → Output: [0,1]
-      Constraints: 2 <= nums.length <= 10^4; -10^9 <= nums[i], target <= 10^9.
-      Follow-up: Provide an algorithm faster than O(n²)."
+      - Include ONLY the problem number. e.g ["15", "24", "39", "139", "237"]
+      - DO NOT include any behavioral questions."
       `;
 
     const response = await ai.models.generateContent({
@@ -48,7 +42,6 @@ export async function generateCustomInterview(type: string, role: string, length
             description: {
               type: Type.STRING,
               description: "Brief interview summary (15 words max)",
-              nullable: false,
             },
             techStack: {
               type: Type.ARRAY,
@@ -58,7 +51,7 @@ export async function generateCustomInterview(type: string, role: string, length
             questions: {
               type: Type.ARRAY,
               items: { type: Type.STRING },
-              description: "Either 5-7 behavioral questions or 1 detailed technical problem",
+              description: "Either 5-7 behavioral questions or 5 LeetCode problem numbers",
             },
           },
           required: ["description", "techStack", "questions"],

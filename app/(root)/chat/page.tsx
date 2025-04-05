@@ -1,10 +1,20 @@
-import GeminiVoiceChat from '@/components/GeminiVoiceChat'
-import React from 'react'
+'use client';
 
-const page = () => {
+import dynamic from 'next/dynamic';
+import React from 'react';
+
+// Import the component dynamically with SSR disabled
+const GeminiVoiceChat = dynamic(
+  () => import('@/components/GeminiVoiceChat'),
+  { ssr: false } // This ensures the component only loads in the browser, not during server-side rendering
+);
+
+const ChatPage = () => {
   return (
-    <div><GeminiVoiceChat /></div>
-  )
-}
+    <div className="min-h-screen flex items-center justify-center">
+      <GeminiVoiceChat />
+    </div>
+  );
+};
 
-export default page
+export default ChatPage;

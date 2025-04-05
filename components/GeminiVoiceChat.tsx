@@ -8,6 +8,9 @@ import Image from 'next/image'
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { interviewerSystemPrompt } from '@/public';
+import { getInterview } from '@/app/api/interview/get/route';
+import { toast } from 'sonner';
+import { error } from 'console';
 
 interface Message {
   role: 'user' | 'assistant' | "system";
@@ -19,12 +22,16 @@ interface Message {
   };
 }
 
-function GeminiVoiceChat() {
+function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [connected, setConnected] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [lastAssistantMessage, setLastAssistantMessage] = useState<Message>();
   const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
   const [isSpeaking, setisSpeaking] = useState(false);
+  const [interviewReady, setInterviewReady] = useState(false);
+  const [interviewType, setInterviewType] = useState("");
+  const [interviewLength, setInterviewLength] = useState(0);
+  const [interviewQuestions, setInterviewQuestions] = useState([""]);
 
   // Type your refs with the appropriate classes or null
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
@@ -47,6 +54,25 @@ function GeminiVoiceChat() {
       clientRef.current = new MultimodalLiveClient({
         apiKey: process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY!,
       });
+
+      // fetch interview details
+      async function getInterviewDetails(){
+        try{
+          const interviewDetails = await getInterview(interviewId);
+          if(interviewDetails.data && interviewDetails.data.createdBy === userId){
+            setInterviewType(interviewDetails.data.type);
+            setInterviewLength(interviewDetails.data.length);
+            setInterviewQuestions(interviewDetails.data.questions);
+            setInterviewReady(true);
+          }else{
+            throw new Error();
+          }
+        }catch(error){
+          console.log("Error fetching interview details: " + error);
+          toast.error("Error fetching interview details. Please refresh the page.");
+        }
+      }
+      getInterviewDetails();
 
       // Setup listeners for connection and errors
       clientRef.current.on('open', () => {
@@ -90,7 +116,7 @@ function GeminiVoiceChat() {
         clientRef.current.disconnect();
       }
     };
-  }, []);
+  }, [interviewId]);
 
   // Connect to the API
   const handleConnect = async () => {
@@ -98,13 +124,15 @@ function GeminiVoiceChat() {
       // select a random voice as the interviewer's voice
       const voiceNumber = Math.floor(Math.random() * 5);
 
+      const interviewDetailsSystemPrompt = `\n\n Interview type = ${interviewType}, Interview length = ${interviewLength}, Interview question: ${interviewQuestions}`;
+
       await clientRef.current?.connect({
         model: "models/gemini-2.0-flash-exp",
         systemInstruction: {
-          parts: [{text: interviewerSystemPrompt}],
+          parts: [{text: interviewerSystemPrompt+interviewDetailsSystemPrompt}],
         },
         generationConfig:{
-          temperature: 1,
+          temperature: 0.7,
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
@@ -174,9 +202,9 @@ function GeminiVoiceChat() {
     try {
       const mediaStream = await navigator.mediaDevices.getDisplayMedia({
         video: { 
-          frameRate: { ideal: 1 },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          frameRate: { ideal: 2 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
         }
       });
 
@@ -191,10 +219,10 @@ function GeminiVoiceChat() {
         hiddenVideoRef.current.srcObject = mediaStream;
       }
 
-      // Set up screen capture interval (0.5 frames per second)
+      // Set up screen capture interval (2 frames per second)
       screenCaptureIntervalRef.current = setInterval(() => {
         captureAndSendFrame();
-      }, 2000);
+      }, 500);
 
       setScreenSharing(true);
 
@@ -301,8 +329,8 @@ function GeminiVoiceChat() {
 
   return (
     <>
-      <div className="call-view">
-        <div className="card-interviewer">
+      <div className="w-full flex justify-center gap-8 mb-8">
+        <div className="card-interviewer w-[40%] flex flex-col items-center p-4 border rounded-lg">
           <div className="avatar">
             <Image src="/icon.png" alt="vapi" width={65} height={54} className="object-cover" />
             {isSpeaking && <span className="animate-speak"></span>}
@@ -310,28 +338,58 @@ function GeminiVoiceChat() {
           <h3>AI Recruiter</h3>
         </div>
 
-        <div className="card-border border-primary-200/50">
-          <div className="card-content ">
+        <div className="card-border border-primary-200/50 w-[40%] flex flex-col items-center p-4">
+          <div className="card-content flex flex-col items-center">
             <Image src="/icon.png" alt="user avatar" width={540} height={540} className="rounded-full object-cover size-[120px]" />
             {isSpeaking && <span className="animate-speak"></span>}
-            <h3>You</h3>
+            <h3>{username}</h3>
           </div>
-          
         </div>
       </div>
-      
-      {lastAssistantMessage?.content.text && (
-        <div className="transcript-border">
-          <div className="transcript">
-            <p className={cn('transition-opacity duration-500 opacity-0', 'animate-fade-In opacity-100')}>
-              {lastAssistantMessage?.content.text}
-            </p>
-          </div>
-        </div>
-      )}
+
+      <div className="w-full flex justify-center gap-6 mb-4 font-bold rounded-sm">
+        {!connected ? (
+          <Button
+            disabled={!interviewReady}
+            onClick={handleConnect}
+            className="w-[150px] bg-white text-black font-bold px-4 py-2"
+          >
+            Start Interview
+          </Button>
+        ) : (
+          <>
+            <Button
+              onClick={handleDisconnect}
+              className="w-[150px] bg-red-500 text-white font-semibold"
+            >
+              End Chat
+            </Button>
+            <Button
+              onClick={toggleMicrophone}
+              className={`${audioEnabled ? 'bg-red-400' : 'bg-green-500'} w-[150px] text-white font-semibold`}
+            >
+              {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
+            </Button>
+            {!screenSharing ? (
+              <Button
+                onClick={startScreenCapture}
+                className="w-[150px] bg-purple-500 text-white font-semibold"
+              >
+                Share Screen
+              </Button>
+            ) : (
+              <Button
+                onClick={stopScreenCapture}
+                className="w-[150px] bg-red-400 text-white font-semibold"
+              >
+                Stop Sharing
+              </Button>
+            )}
+          </>
+        )}
+      </div>
 
       <div className="w-full flex justify-center gap-6 mt-12">
-        {/* Hidden video and canvas elements for screen capture */}
         <video
           ref={hiddenVideoRef}
           className="hidden"
@@ -343,7 +401,6 @@ function GeminiVoiceChat() {
           className="hidden"
         />
 
-        {/* Screen sharing preview (shown only when active) */}
         {screenSharing && (
           <div className="fixed bottom-4 right-4 border border-gray-300 rounded shadow-lg overflow-hidden z-10">
             <div className="bg-black text-white text-xs p-1 flex justify-between items-center">
@@ -363,86 +420,9 @@ function GeminiVoiceChat() {
             />
           </div>
         )}
-
-        <div className="controls flex flex-wrap gap-6 mb-4 font-bold rounded-sm">
-          {!connected ? (
-            <Button
-              onClick={handleConnect}
-              className="w-[150px] bg-white text-black font-bold px-4 py-2"
-            >
-              Start Chat
-            </Button>
-          ) : (
-            <>
-              <Button
-                onClick={handleDisconnect}
-                  className="w-[150px] bg-red-500 text-white font-semibold"
-              >
-                End Chat
-              </Button>
-              <Button
-                onClick={toggleMicrophone}
-                  className={`${audioEnabled ? 'bg-red-400' : 'bg-green-500'} w-[150px] text-white font-semibold`}
-              >
-                {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
-              </Button>
-              {!screenSharing ? (
-                <Button
-                  onClick={startScreenCapture}
-                    className="w-[150px] bg-purple-500 text-white font-semibold"
-                >
-                  Share Screen
-                </Button>
-              ) : (
-                <Button
-                  onClick={stopScreenCapture}
-                      className="w-[150px] bg-red-400 text-white font-semibold"
-                >
-                  Stop Sharing
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-
-          
-        {/* <div className="conversation w-full max-w-2xl h-96 overflow-y-auto border border-gray-300 rounded p-4 mb-4">
-          {messages.map((msg, index) => (
-            <div key={index} className={`message p-2 mb-2 rounded ${msg.role === 'user' ? 'bg-blue-100 ml-auto' : 'bg-gray-100'} max-w-[80%]`}>
-              {msg.content.modelTurn?.parts?.[0]?.text || msg.content.text || "[Non-text content]"}
-            </div>
-          ))}
-        </div> */}
-
-        {/* {connected && (
-          <div className="message-input w-full max-w-2xl flex">
-            <input
-              type="text"
-              placeholder="Type a message..."
-              className="flex-1 border border-gray-300 rounded-l px-4 py-2"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const input = e.target as HTMLInputElement;
-                  sendMessage(input.value);
-                  input.value = '';
-                }
-              }}
-            />
-            <button
-              onClick={(e) => {
-                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                sendMessage(input.value);
-                input.value = '';
-              }}
-              className="bg-blue-500 text-white px-4 py-2 rounded-r"
-            >
-              Send
-            </button>
-          </div>
-        )} */}
       </div>
     </>
-  );
+  )
 }
 
 export default GeminiVoiceChat;
