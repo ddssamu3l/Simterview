@@ -21,7 +21,7 @@ export async function generateCustomInterview(type: string, role: string, length
       - Behavioral questions are going to be read by a voice assisrtant so do not use '/' or '*' or any characters that will break text-to-speech algorithms.
 
       If "technical":
-      - Find 5 LeetCode problems suited to difficulty:
+      - Find 5 LeetCode problems suited to difficulty (do NOT give problems that are well-known and trivial such as 2Sum or Valid Parenthesis):
         * Beginner: LeetCode easy difficulty
         * Intern: easier medium
         * Junior/New Grad: standard medium
