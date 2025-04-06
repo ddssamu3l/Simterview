@@ -141,3 +141,13 @@ export function base64ToArrayBuffer(base64: string) {
   }
   return bytes.buffer;
 }
+
+export function formatTime(time: number){
+  const hours = Math.floor(time / 3600);
+  const minutes = Math.floor((time % 3600) / 60);
+  const seconds = time % 60;
+
+  const pad = (num: number) => num.toString().padStart(2, '0');
+
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+};

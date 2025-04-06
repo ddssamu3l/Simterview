@@ -5,12 +5,11 @@ import { MultimodalLiveClient } from '@/lib/multimodal-live-client';
 import { AudioRecorder } from '@/lib/audio-recorder';
 import { AudioStreamer } from '@/lib/audio-streamer';
 import Image from 'next/image'
-import { cn } from '@/lib/utils';
+import { formatTime } from '@/lib/utils';
 import { Button } from './ui/button';
 import { interviewerSystemPrompt } from '@/public';
 import { getInterview } from '@/app/api/interview/get/route';
 import { toast } from 'sonner';
-import { error } from 'console';
 
 interface Message {
   role: 'user' | 'assistant' | "system";
@@ -30,13 +29,18 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [isSpeaking, setisSpeaking] = useState(false);
   const [interviewReady, setInterviewReady] = useState(false);
   const [interviewType, setInterviewType] = useState("");
+  const [isBehavioral, setIsBehavioral] = useState(false);
   const [interviewLength, setInterviewLength] = useState(0);
+  const [time, setTime] = useState(0);
   const [interviewQuestions, setInterviewQuestions] = useState([""]);
 
   // Type your refs with the appropriate classes or null
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const [screenSharing, setScreenSharing] = useState(false);
+  const defaultFramerate = 1;
+  const [framerate, setFramerate] = useState(defaultFramerate);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clientRef = useRef<MultimodalLiveClient | null>(null);
 
   // Properly typed refs for screen sharing
@@ -48,7 +52,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
   const interviewVoices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede"];
 
-  // Initialize client and audio streamer
+  // Initial setup
   useEffect(() => {
     if (!clientRef.current) {
       clientRef.current = new MultimodalLiveClient({
@@ -64,6 +68,9 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
             setInterviewLength(interviewDetails.data.length);
             setInterviewQuestions(interviewDetails.data.questions);
             setInterviewReady(true);
+
+            setTime(interviewDetails.data.length * 60);
+            setIsBehavioral(interviewDetails.data.type === "behavioral");
           }else{
             throw new Error();
           }
@@ -111,12 +118,55 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       audioStreamerRef.current = new AudioStreamer(audioCtx);
     }
 
+    // dynamic framerate setting
+    const handleKeyPress = () => {
+      setFramerate(15); 
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        setFramerate(defaultFramerate);
+      }, 500);
+    };
+    window.addEventListener('keydown', handleKeyPress);
+
     return () => {
       if (clientRef.current) {
         clientRef.current.disconnect();
       }
+      window.removeEventListener('keydown', handleKeyPress);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [interviewId]);
+
+  // timer mechanic
+  useEffect(() => {
+    if (time <= 0 || !connected) return;
+
+    const intervalId = setInterval(() => {
+      setTime(prev => prev - 1);
+    }, 1000);
+
+    // if less than 5 minutes left, inform the AI recruiter
+    if(time <= 300){
+      sendSystemMessage("There is only 5 minutes left in the interview.");
+    }
+
+    return () => clearInterval(intervalId);
+  }, [time, connected]);
+
+  // dynamic framerate switching
+  useEffect(() => {
+    // clear the previous framerate interval and set the new framerate interval
+    if (screenCaptureIntervalRef.current) {
+      clearInterval(screenCaptureIntervalRef.current);
+    }
+    screenCaptureIntervalRef.current = setInterval(() => {
+      captureAndSendFrame();
+    }, 1000 / framerate);
+    console.log("framerate changed");
+  }, [framerate])
 
   // Connect to the API
   const handleConnect = async () => {
@@ -124,7 +174,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       // select a random voice as the interviewer's voice
       const voiceNumber = Math.floor(Math.random() * 5);
 
-      const interviewDetailsSystemPrompt = `\n\n Interview type = ${interviewType}, Interview length = ${interviewLength}, Interview question: ${interviewQuestions}`;
+      const interviewDetailsSystemPrompt = `\n\n Interview type = ${interviewType}, Interview length = ${time}, Interview question: ${interviewQuestions}`;
 
       await clientRef.current?.connect({
         model: "models/gemini-2.0-flash-exp",
@@ -168,6 +218,8 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     
     // Reset messages
     setMessages([]);
+    // reset timer
+    setTime(interviewLength * 60);
   };
 
   // Toggle microphone for audio recording
@@ -202,7 +254,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     try {
       const mediaStream = await navigator.mediaDevices.getDisplayMedia({
         video: { 
-          frameRate: { ideal: 2 },
+          frameRate: { ideal: 15 },
           width: { ideal: 1920 },
           height: { ideal: 1080 }
         }
@@ -219,10 +271,10 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         hiddenVideoRef.current.srcObject = mediaStream;
       }
 
-      // Set up screen capture interval (2 frames per second)
+      // Set up screen capture framerate
       screenCaptureIntervalRef.current = setInterval(() => {
         captureAndSendFrame();
-      }, 500);
+      }, 1000/defaultFramerate);
 
       setScreenSharing(true);
 
@@ -233,7 +285,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       
       // Send a message to inform the AI that screen sharing has started
       if (connected && clientRef.current) {
-        sendMessage("I've started sharing my screen with you. Please let me know if you can see it.");
+        sendSystemMessage("The user has shared their screen. Let the user know once you can see it.");
       }
     } catch (error) {
       console.error('Screen sharing error:', error);
@@ -265,7 +317,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     
     // Inform the AI that screen sharing has stopped
     if (connected && clientRef.current) {
-      sendMessage("I've stopped sharing my screen.");
+      sendSystemMessage("The user has stopped sharing their screen.");
     }
   };
 
@@ -303,20 +355,33 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         clientRef.current.sendRealtimeInput([
           { mimeType: 'image/jpeg', data }
         ]);
-        
-        console.log('Screen capture frame sent');
       } catch (error) {
         console.error('Error capturing or sending frame:', error);
       }
     }
   };
 
-  // Send text message
-  const sendMessage = (text: string) => {
+  // Send text message to the AI from the user
+  // const sendMessage = (text: string) => {
+  //   if (connected && text.trim() && clientRef.current) {
+  //     try {
+  //       clientRef.current.send({ text });
+  //       setMessages(prev => [...prev, { role: 'user', content: { text } }]);
+  //     } catch (error) {
+  //       console.error("Failed to send message:", error);
+  //       // If the WebSocket isn't connected, reconnect
+  //       if (error instanceof Error && error.message === "WebSocket is not connected") {
+  //         handleConnect(); // Attempt to reconnect
+  //       }
+  //     }
+  //   }
+  // };
+
+  const sendSystemMessage = (text: string) => {
     if (connected && text.trim() && clientRef.current) {
       try {
         clientRef.current.send({ text });
-        setMessages(prev => [...prev, { role: 'user', content: { text } }]);
+        setMessages(prev => [...prev, { role: 'system', content: { text } }]);
       } catch (error) {
         console.error("Failed to send message:", error);
         // If the WebSocket isn't connected, reconnect
@@ -329,6 +394,17 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
   return (
     <div className="flex flex-col call-view">
+      <div>
+        {!isBehavioral && 
+          <div className="text-xl font-semibold text-center">
+            Capture framerate: {framerate}
+          </div>
+        }
+        <div className="text-xl font-semibold text-center">
+          Time:{formatTime(time)}
+        </div>
+      </div>
+     
       <div className="flex flex-row gap-4 w-6xl max-w-[90vw]">
         <div className="card-interviewer">
           <div className="avatar">
@@ -361,7 +437,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
               onClick={handleDisconnect}
               className="w-[150px] bg-red-500 text-white font-semibold"
             >
-              End Chat
+              Start Over
             </Button>
             <Button
               onClick={toggleMicrophone}
@@ -369,20 +445,22 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
             >
               {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
             </Button>
-            {!screenSharing ? (
-              <Button
-                onClick={startScreenCapture}
-                className="w-[150px] bg-purple-500 text-white font-semibold"
-              >
-                Share Screen
-              </Button>
-            ) : (
-              <Button
-                onClick={stopScreenCapture}
-                className="w-[150px] bg-red-400 text-white font-semibold"
-              >
-                Stop Sharing
-              </Button>
+            {!isBehavioral && (
+              !screenSharing ? (
+                <Button
+                  onClick={startScreenCapture}
+                  className="w-[150px] bg-purple-500 text-white font-semibold"
+                >
+                  Share Screen
+                </Button>
+              ) : (
+                <Button
+                  onClick={stopScreenCapture}
+                  className="w-[150px] bg-red-400 text-white font-semibold"
+                >
+                  Stop Sharing
+                </Button>
+              )
             )}
           </>
         )}
