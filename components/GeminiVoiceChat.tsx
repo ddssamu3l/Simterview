@@ -92,16 +92,65 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       });
 
       // Setup listeners for content and audio events
-      clientRef.current.on('content', (data: any) => {
-        setMessages(prev => [...prev, { role: 'assistant', content: data }]);
-        setLastAssistantMessage(data.text);
-        console.log("Assistant transcript: " + data.text);
+      clientRef.current.on('content', (data: any) => {        
+        let transcriptText = '';
+        
+        if (data.modelTurn && data.modelTurn.parts && data.modelTurn.parts.length > 0) {
+          for (const part of data.modelTurn.parts) {
+            if (part.text) {
+              transcriptText = part.text;
+              break;
+            }
+          }
+        }
+        // Check if data directly has text property (another possible format)
+        else if (data.text) {
+          transcriptText = data.text;
+        }
+        // Check if data is text itself (string)
+        else if (typeof data === 'string') {
+          transcriptText = data;
+        }
+        // Check if data has a text attribute at the top level
+        else if (data.parts && data.parts.length > 0) {
+          for (const part of data.parts) {
+            if (part.text) {
+              transcriptText = part.text;
+              break;
+            }
+          }
+        }
+        
+        console.log("Extracted transcript:", transcriptText || "No transcript found");
+        
+        // Add message to conversation history even if empty to debug
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: { 
+            text: transcriptText || "[No text transcript]",
+            modelTurn: data.modelTurn || data
+          } 
+        }]);
+        
+        // Always update the last message for display in UI, even if no transcript was found
+        setLastAssistantMessage({ 
+          role: 'assistant', 
+          content: { text: transcriptText || "[Listening...]" } 
+        });
       });
 
       clientRef.current.on('audio', (audioData: any) => {
+        console.log("Audio event received, data size:", audioData.byteLength);
+        
         if (audioStreamerRef.current) {
           audioStreamerRef.current.addPCM16(new Uint8Array(audioData));
           setisSpeaking(true);
+          
+          // When audio stops (pause detected), set isSpeaking to false
+          const dataLength = audioData.byteLength;
+          if (dataLength === 0 || dataLength < 100) { // Small packet might indicate end
+            setTimeout(() => setisSpeaking(false), 500); // Small delay to prevent flickering
+          }
         }
       });
 
@@ -142,15 +191,21 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
   // timer mechanic
   useEffect(() => {
-    if (time <= 0 || !connected) return;
+    if(!connected) return 
+
+    if (time <= 0) handleDisconnect();
 
     const intervalId = setInterval(() => {
       setTime(prev => prev - 1);
     }, 1000);
 
     // if less than 5 minutes left, inform the AI recruiter
-    if(time <= 300){
+    if(time == 300){
       sendSystemMessage("There is only 5 minutes left in the interview.");
+    }
+
+    if(time == 60){
+      sendSystemMessage("There is only 1 minute left. Summarize the interview with the candidate");
     }
 
     return () => clearInterval(intervalId);
@@ -165,7 +220,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     screenCaptureIntervalRef.current = setInterval(() => {
       captureAndSendFrame();
     }, 1000 / framerate);
-    console.log("framerate changed");
   }, [framerate])
 
   // Connect to the API
@@ -183,6 +237,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         },
         generationConfig:{
           temperature: 0.7,
+          responseModalities: "audio",
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
@@ -200,6 +255,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
   // Disconnect from the API and stop audio recording and screen sharing if active
   const handleDisconnect = () => {
+    console.log("Disconnecting...");
     clientRef.current?.disconnect();
     setConnected(false);
     setisSpeaking(false);
@@ -412,6 +468,13 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
             {isSpeaking && <span className="animate-speak"></span>}
           </div>
           <h3>AI Recruiter</h3>
+          
+          {/* Display the transcript from the AI */}
+          {lastAssistantMessage && lastAssistantMessage.content.text && (
+            <div className=" mt-4 p-3 bg-primary-100 text-black rounded-lg max-w-md text-sm">
+              <p>{lastAssistantMessage.content.text}</p>
+            </div>
+          )}
         </div>
 
         <div className="card-border border-primary-200/50 ">

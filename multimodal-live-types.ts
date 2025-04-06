@@ -44,8 +44,10 @@ export type LiveConfig = {
   tools?: Array<Tool | { googleSearch: {} } | { codeExecution: {} }>;
 };
 
-export type LiveGenerationConfig = GenerationConfig & {
-  responseModalities: "text" | "audio" | "image";
+// Define our LiveGenerationConfig based on the base GenerationConfig
+export interface LiveGenerationConfig extends GenerationConfig {
+  // Add Gemini Live API specific properties
+  responseModalities?: "text" | "audio" | "image";
   speechConfig?: {
     voiceConfig?: {
       prebuiltVoiceConfig?: {
@@ -53,7 +55,7 @@ export type LiveGenerationConfig = GenerationConfig & {
       };
     };
   };
-};
+}
 
 export type LiveOutgoingMessage =
   | SetupMessage
