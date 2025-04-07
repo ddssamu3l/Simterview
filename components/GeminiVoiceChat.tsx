@@ -10,6 +10,8 @@ import { Button } from './ui/button';
 import { interviewerSystemPrompt } from '@/public';
 import { getInterview } from '@/app/api/interview/get/route';
 import { toast } from 'sonner';
+import { SchemaType } from '@google/generative-ai';
+import { ToolCall } from '@/multimodal-live-types';
 
 interface Message {
   role: 'user' | 'assistant' | "system";
@@ -89,6 +91,10 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       clientRef.current.on('close', (event) => {
         console.log("WebSocket connection closed", event);
         setConnected(false);
+      });
+
+      clientRef.current.on('toolcall', (toolCall: ToolCall) => {
+        console.log("Tool called: " + JSON.stringify(toolCall));
       });
 
       // Setup listeners for content and audio events
@@ -233,11 +239,34 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       await clientRef.current?.connect({
         model: "models/gemini-2.0-flash-exp",
         systemInstruction: {
-          parts: [{text: interviewerSystemPrompt+interviewDetailsSystemPrompt}],
+          parts: [{ text: interviewerSystemPrompt + interviewDetailsSystemPrompt }],
         },
-        generationConfig:{
+        tools: [
+          {
+            functionDeclarations: [
+              {
+                name: "summarize-feedback",
+                description: "Creates an internal feedback record of the candidate's interview performance in the database",
+                parameters: {
+                  type: SchemaType.OBJECT,
+                  properties: {
+                    pass: {
+                      type: SchemaType.BOOLEAN,
+                      description: 'Whether the candidate passed the interview. Set to true if you would pass the candidate in an interview, false otherwise.',
+                    },
+                    feedback: {
+                      type: SchemaType.STRING,
+                      description: "A written report for the hiring manager describing the candidate's overall performance that includes the things they did well and the things they need to improve on.",
+                    },
+                  },
+                  required: ['pass', 'feedback'],
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: {
           temperature: 0.7,
-          responseModalities: "audio",
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
@@ -247,6 +276,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           },
         },
       });
+
       setConnected(true);
     } catch (error) {
       console.error('Connection error:', error);
