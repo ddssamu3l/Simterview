@@ -1,4 +1,6 @@
+"use server"
 import { db } from "@/firebase/admin"
+
 export async function saveInterviewFeedback({interviewId, userId, pass, feedback}: FeedbackProps){
   try{
     const feedbacksRef = db.collection('feedbacks');

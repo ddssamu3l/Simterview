@@ -1,5 +1,4 @@
 "use server"
-
 import { db } from "@/firebase/admin"
 
 export async function getInterview(interviewId: string){
