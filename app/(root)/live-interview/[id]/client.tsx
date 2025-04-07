@@ -16,7 +16,7 @@ function ClientLiveInterview({
 }: { 
   id: string;
   username: string;
-  userId?: string;
+  userId: string;
 }) {
   return (
     <div className="h-[600px] sm:h-[800px] flex items-center justify-center">

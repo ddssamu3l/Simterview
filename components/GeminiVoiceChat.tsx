@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useState, useEffect, useRef } from 'react';
@@ -12,6 +13,7 @@ import { getInterview } from '@/app/api/interview/get/route';
 import { toast } from 'sonner';
 import { SchemaType } from '@google/generative-ai';
 import { ToolCall } from '@/multimodal-live-types';
+import { saveInterviewFeedback } from '@/app/api/interview/post/route';
 
 interface Message {
   role: 'user' | 'assistant' | "system";
@@ -95,6 +97,17 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
       clientRef.current.on('toolcall', (toolCall: ToolCall) => {
         console.log("Tool called: " + JSON.stringify(toolCall));
+        if (toolCall.functionCalls[0].name === "summarize-feedback"){
+          console.log("saving feedback...");
+          async function saveFeedback(){
+            // Type assertion to tell TypeScript about the expected structure
+            const args = toolCall.functionCalls[0].args as { pass: boolean; feedback: string };
+            const pass = args.pass;
+            const feedback = args.feedback;
+            await saveInterviewFeedback({interviewId, userId, pass, feedback});
+          }
+          saveFeedback();
+        }
       });
 
       // Setup listeners for content and audio events

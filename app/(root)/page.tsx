@@ -10,7 +10,7 @@ const page = () => {
           <h1 className="sm:text-5xl">Become FAANG-Ready With AI Mock Software Engineering Interviews</h1>
           <p className="sm:text-lg">Test your technical & behavioral skills against live AI recruiters & get instant quality feedback!</p>
           <Button asChild className="btn-primary w-full max-w-lg">
-            <Link href="/interview-list">Start your interview now</Link>
+            <Link href="/custom-interview">Generate your AI interview</Link>
           </Button>
         </div>
       </section>

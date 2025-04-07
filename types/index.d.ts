@@ -66,7 +66,7 @@ interface InterviewGenerationProps {
 
 interface AgentProps {
   username: string;
-  userId?: string;
+  userId: string;
   interviewId: string;
   feedbackId?: string;
   questions?: string[];
@@ -112,4 +112,11 @@ interface InterviewFormProps {
 
 interface TechIconProps {
   techStack: string[];
+}
+
+interface FeedbackProps{
+  interviewId: string;
+  userId: string;
+  pass: boolean;
+  feedback: string;
 }
