@@ -148,6 +148,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
             alt="simterview icon"
             height={50}
             width={44}
+            unoptimized
           />
           <h1 className="text-light-100">Simterview</h1>
         </div>
@@ -157,7 +158,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
           onClick={signInWithGitHub}
           disabled={isLoading}
         >
-          <Image src="/github.svg" alt="GitHub logo" width={24} height={24} />
+          <Image src="/github.svg" alt="GitHub logo" width={24} height={24} unoptimized />
           {(isSignIn)
             ? <p>Sign in with GitHub</p>
             : <p>Sign up with GitHub</p>

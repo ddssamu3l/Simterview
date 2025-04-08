@@ -13,6 +13,7 @@ const NavBar = ({username}: {username: string}) => {
             alt="logo"
             width={50}
             height={44}
+            unoptimized
           />
           <h2 className="font-bold max-sm:text-xl">Simterview</h2>
         </Link>

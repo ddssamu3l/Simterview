@@ -97,16 +97,21 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
       clientRef.current.on('toolcall', (toolCall: ToolCall) => {
         console.log("Tool called: " + JSON.stringify(toolCall));
-        if (toolCall.functionCalls[0].name === "summarize-feedback"){
+        if (toolCall.functionCalls[0].name === "store-feedback"){
           console.log("saving feedback...");
           async function saveFeedback(){
-            // Type assertion to tell TypeScript about the expected structure
-            const args = toolCall.functionCalls[0].args as { pass: boolean; feedback: string };
-            const pass = args.pass;
-            const feedback = args.feedback;
-            await saveInterviewFeedback({interviewId, userId, pass, feedback});
+            try{
+              // Type assertion to tell TypeScript about the expected structure
+              const args = toolCall.functionCalls[0].args as { pass: boolean; feedback: string };
+              const pass = args.pass;
+              const feedback = args.feedback;
+              await saveInterviewFeedback({ interviewId, userId, pass, feedback });
+            }catch(error){
+              console.error("Error: " + error);
+            }
           }
           saveFeedback();
+          sendSystemMessage("The store-feedback tool is completed. An internal record of the candidate's performance for this interview is saved.");
         }
       });
 
@@ -115,12 +120,8 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         let transcriptText = '';
         
         if (data.modelTurn && data.modelTurn.parts && data.modelTurn.parts.length > 0) {
-          for (const part of data.modelTurn.parts) {
-            if (part.text) {
-              transcriptText = part.text;
-              break;
-            }
-          }
+          transcriptText = data.modelTurn.parts[0].text;
+          console.log("Extracted transcript:", transcriptText || "No transcript found");
         }
         // Check if data directly has text property (another possible format)
         else if (data.text) {
@@ -139,8 +140,9 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
             }
           }
         }
-        
-        console.log("Extracted transcript:", transcriptText || "No transcript found");
+        else{
+          console.log("No texts found");
+        }
         
         // Add message to conversation history even if empty to debug
         setMessages(prev => [...prev, { 
@@ -158,9 +160,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         });
       });
 
-      clientRef.current.on('audio', (audioData: any) => {
-        console.log("Audio event received, data size:", audioData.byteLength);
-        
+      clientRef.current.on('audio', (audioData: any) => {        
         if (audioStreamerRef.current) {
           audioStreamerRef.current.addPCM16(new Uint8Array(audioData));
           setisSpeaking(true);
@@ -219,12 +219,12 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     }, 1000);
 
     // if less than 5 minutes left, inform the AI recruiter
-    if(time == 300){
-      sendSystemMessage("There is only 5 minutes left in the interview.");
+    if(time == 600){
+      sendSystemMessage("There is only 10 minutes left in the interview.");
     }
 
-    if(time == 60){
-      sendSystemMessage("There is only 1 minute left. Summarize the interview with the candidate");
+    if(time == 300){
+      sendSystemMessage("There is only 5 minute left in the interview. Tell the candidate that you are wrapping up the interview and you'll need a second in order to generate a comprehensive analysis. After you are done calling the store-feedback tool, summarize the interview with the candidate verbally.");
     }
 
     return () => clearInterval(intervalId);
@@ -258,8 +258,8 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           {
             functionDeclarations: [
               {
-                name: "summarize-feedback",
-                description: "Creates an internal feedback record of the candidate's interview performance in the database",
+                name: "store-feedback",
+                description: "Stores an internal feedback record of the candidate's interview performance in the database",
                 parameters: {
                   type: SchemaType.OBJECT,
                   properties: {
@@ -279,7 +279,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           },
         ],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.3,
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
@@ -291,6 +291,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       });
 
       setConnected(true);
+      sendSystemMessage("The candidate has joined. Please greet the candidate!");
     } catch (error) {
       console.error('Connection error:', error);
     }

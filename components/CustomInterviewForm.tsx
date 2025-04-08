@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation'
 const interviewFormSchema = z.object({
   type: z.enum(["behavioral", "technical"]),
   role: z.string().min(1, "Role is required"),
-  length: z.number().int().min(25).max(60),
+  length: z.number().int().min(5).max(90),
   difficulty: z.enum(["Intern", "Junior/New Grad", "Mid Level", "Senior"]),
   jobDescription: z.string().optional(),
 })
@@ -133,6 +133,7 @@ const CustomInterviewForm = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
+                            <SelectItem value="6">6 minutes</SelectItem>
                             <SelectItem value="25">25 minutes</SelectItem>
                             <SelectItem value="30">30 minutes</SelectItem>
                             <SelectItem value="45">45 minutes</SelectItem>
