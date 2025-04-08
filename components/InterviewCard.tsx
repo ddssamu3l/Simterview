@@ -44,7 +44,7 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
         </div>
         <div className={cn("interview-description mx-4 text-start", techStack.length > 0 ? "justify-between text-start" : "justify-center")}>
           <p className="text-sm">{description}</p>
-          <DisplayTechIcons techStack={techStack}></DisplayTechIcons>
+          {/* <DisplayTechIcons techStack={techStack}></DisplayTechIcons> */}
         </div>
       </Link>
     </div>

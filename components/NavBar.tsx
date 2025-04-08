@@ -3,7 +3,8 @@ import Image from 'next/image'
 import React from 'react'
 import { Button } from './ui/button'
 
-const NavBar = ({username}: {username: string}) => {
+const NavBar = ({username, userId}: {username: string, userId: string}) => {
+  const userProfilePath = "/u/"+userId;
   return (
     <div className="w-full border-b h-[7vh]">
       <nav className="flex justify-between">
@@ -18,7 +19,7 @@ const NavBar = ({username}: {username: string}) => {
           <h2 className="font-bold max-sm:text-xl">Simterview</h2>
         </Link>
         {(username !== "") 
-        ? <h2 className="flex items-center font-bold max-sm:hidden">{username}</h2> 
+        ? <Link href={userProfilePath}><h2 className="flex items-center font-bold max-sm:hidden">{username}</h2></Link>
         : <Button className="font-bold sm:w-[120px] hover:mouse-pointer">
             <Link href="/sign-in">
               Sign-In
