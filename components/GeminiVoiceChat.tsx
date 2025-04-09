@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { SchemaType } from '@google/generative-ai';
 import { ToolCall } from '@/multimodal-live-types';
 import { saveInterviewFeedback } from '@/app/api/interview/post/route';
+import { useRouter } from 'next/navigation';
 
 interface Message {
   role: 'user' | 'assistant' | "system";
@@ -46,6 +47,8 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [framerate, setFramerate] = useState(defaultFramerate);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clientRef = useRef<MultimodalLiveClient | null>(null);
+  const router = useRouter();
+  const [feedbackRef, setFeedbackRef] = useState("");
 
   // Properly typed refs for screen sharing
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -106,6 +109,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
               const pass = args.pass;
               const feedback = args.feedback;
               await saveInterviewFeedback({ interviewId, userId, pass, feedback });
+              setFeedbackRef("saved");
             }catch(error){
               console.error("Error: " + error);
             }
@@ -349,6 +353,25 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     setAudioEnabled(!audioEnabled);
   };
 
+  const handleQuit = async() => {
+    try{
+      handleDisconnect();
+
+      if(!feedbackRef || feedbackRef == ""){
+        const pass = false;
+        const feedback = "No feedback available."
+        await saveInterviewFeedback({interviewId, userId, pass, feedback});
+      }
+      console.log("Quitting interview...");
+      router.push(`/u/${userId}`);
+    }catch(error){
+      if (error instanceof Error && error.message !== "NEXT_REDIRECT") {
+        console.log("Error: " + error);
+        toast.error("Error quitting interview: " + error);
+      }
+    }
+  }
+
   // Start screen capture
   const startScreenCapture = async () => {
     try {
@@ -529,7 +552,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         </div>
       </div>
         
-      <div className="w-full flex justify-center gap-6 mb-4 font-bold rounded-sm">
+      <div className="w-full flex max-sm:flex-col max-sm items-center justify-center gap-6 mb-4 font-bold rounded-sm">
         {!connected ? (
           <Button
             disabled={!interviewReady}
@@ -552,6 +575,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
             >
               {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
             </Button>
+            
             {!isBehavioral && (
               !screenSharing ? (
                 <Button
@@ -569,6 +593,12 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
                 </Button>
               )
             )}
+              <Button
+                onClick={handleQuit}
+                className="w-[150px] bg-red-500 text-white font-semibold"
+              >
+                Quit Interview
+              </Button>
           </>
         )}
       </div>

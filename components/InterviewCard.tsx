@@ -1,7 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
-import Link from 'next/link';
-import DisplayTechIcons from './DisplayTechIcons';
+// import Link from 'next/link';
+// import DisplayTechIcons from './DisplayTechIcons';
 import { cn } from '@/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -9,10 +9,10 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
   
   return (
     <div className="card-border hover:bg-dark-300 w-[360px] max-sm:w-full min-h-64 cursor-pointer">
-      <Link href={(pass != null && pass != undefined)
+      {/* <Link href={(pass != null && pass != undefined)
         ? `/interview/${id}/feedback`
         : `/interview/${id}`
-      }>
+      }> */}
         <div className="card-interview border-b">
           <div className="flex">
             <div className="relative flex justify-between w-full">
@@ -44,9 +44,9 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
         </div>
         <div className={cn("interview-description mx-4 text-start", techStack.length > 0 ? "justify-between text-start" : "justify-center")}>
           <p className="text-sm">{description}</p>
-          <DisplayTechIcons techStack={techStack}></DisplayTechIcons>
+          {/* <DisplayTechIcons techStack={techStack}></DisplayTechIcons> */}
         </div>
-      </Link>
+      {/* </Link> */}
     </div>
   )
 }
