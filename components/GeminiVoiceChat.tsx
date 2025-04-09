@@ -353,7 +353,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     setAudioEnabled(!audioEnabled);
   };
 
-  const quitInterview = async() => {
+  const handleQuit = async() => {
     try{
       handleDisconnect();
 
@@ -594,7 +594,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
               )
             )}
               <Button
-                onClick={quitInterview}
+                onClick={handleQuit}
                 className="w-[150px] bg-red-500 text-white font-semibold"
               >
                 Quit Interview
