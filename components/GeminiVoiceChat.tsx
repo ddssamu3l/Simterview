@@ -11,7 +11,7 @@ import { Button } from './ui/button';
 import { interviewerSystemPrompt } from '@/public';
 import { getInterview } from '@/app/api/interview/get/route';
 import { toast } from 'sonner';
-import { SchemaType } from '@google/generative-ai';
+import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
 import { ToolCall } from '@/multimodal-live-types';
 import { saveInterviewFeedback } from '@/app/api/interview/post/route';
 import { useRouter } from 'next/navigation';
@@ -59,6 +59,25 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
   const interviewVoices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede"];
 
+  const storeFeedbackDeclaration: FunctionDeclaration = {
+    name: "storeFeedback",
+    description: "Stores an internal feedback record of the candidate's interview performance in the database",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        passed: {
+          type: SchemaType.BOOLEAN,
+          description: "Whether the candidate passed the interview. Set to true if you would pass the candidate in an interview, false otherwise.",
+        },
+        feedback: {
+          type: SchemaType.STRING,
+          description: "A written report for the hiring manager describing the candidate's overall performance, including strengths and areas for improvement.",
+        },
+      },
+      required: ["passed", "feedback"],
+    },
+  }
+
   // Initial setup
   useEffect(() => {
     if (!clientRef.current) {
@@ -99,69 +118,24 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       });
 
       clientRef.current.on('toolcall', (toolCall: ToolCall) => {
-        console.log("Tool called: " + JSON.stringify(toolCall));
-        if (toolCall.functionCalls[0].name === "store-feedback"){
+        if (toolCall.functionCalls[0].name === "storeFeedback"){
           console.log("saving feedback...");
           async function saveFeedback(){
             try{
               // Type assertion to tell TypeScript about the expected structure
-              const args = toolCall.functionCalls[0].args as { pass: boolean; feedback: string };
-              const pass = args.pass;
+              const args = toolCall.functionCalls[0].args as { passed: boolean; feedback: string };
+              const passed = args.passed;
               const feedback = args.feedback;
-              await saveInterviewFeedback({ interviewId, userId, pass, feedback });
+              console.log("Written feedback: " + feedback);
+              await saveInterviewFeedback({ interviewId, userId, passed, feedback });
               setFeedbackRef("saved");
             }catch(error){
               console.error("Error: " + error);
             }
           }
           saveFeedback();
-          sendSystemMessage("The store-feedback tool is completed. An internal record of the candidate's performance for this interview is saved.");
+          sendSystemMessage("The storeFeedback tool is completed. An internal record of the candidate's performance for this interview is saved.");
         }
-      });
-
-      // Setup listeners for content and audio events
-      clientRef.current.on('content', (data: any) => {        
-        let transcriptText = '';
-        
-        if (data.modelTurn && data.modelTurn.parts && data.modelTurn.parts.length > 0) {
-          transcriptText = data.modelTurn.parts[0].text;
-          console.log("Extracted transcript:", transcriptText || "No transcript found");
-        }
-        // Check if data directly has text property (another possible format)
-        else if (data.text) {
-          transcriptText = data.text;
-        }
-        // Check if data is text itself (string)
-        else if (typeof data === 'string') {
-          transcriptText = data;
-        }
-        // Check if data has a text attribute at the top level
-        else if (data.parts && data.parts.length > 0) {
-          for (const part of data.parts) {
-            if (part.text) {
-              transcriptText = part.text;
-              break;
-            }
-          }
-        }
-        else{
-          console.log("No texts found");
-        }
-        
-        // Add message to conversation history even if empty to debug
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: { 
-            text: transcriptText || "[No text transcript]",
-            modelTurn: data.modelTurn || data
-          } 
-        }]);
-        
-        // Always update the last message for display in UI, even if no transcript was found
-        setLastAssistantMessage({ 
-          role: 'assistant', 
-          content: { text: transcriptText || "[Listening...]" } 
-        });
       });
 
       clientRef.current.on('audio', (audioData: any) => {        
@@ -216,7 +190,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   useEffect(() => {
     if(!connected) return 
 
-    if (time <= 0) handleDisconnect();
+    if (time <= 0) handleQuit();
 
     const intervalId = setInterval(() => {
       setTime(prev => prev - 1);
@@ -228,7 +202,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     }
 
     if(time == 300){
-      sendSystemMessage("There is only 5 minute left in the interview. Tell the candidate that you are wrapping up the interview and you'll need a second in order to generate a comprehensive analysis. After you are done calling the store-feedback tool, summarize the interview with the candidate verbally.");
+      sendSystemMessage("There is only 5 minute left in the interview. Tell the candidate that you are wrapping up the interview (don't ask any more interview questions) and you'll need a second in order to generate a comprehensive analysis.");
     }
 
     return () => clearInterval(intervalId);
@@ -260,29 +234,11 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         },
         tools: [
           {
-            functionDeclarations: [
-              {
-                name: "store-feedback",
-                description: "Stores an internal feedback record of the candidate's interview performance in the database",
-                parameters: {
-                  type: SchemaType.OBJECT,
-                  properties: {
-                    pass: {
-                      type: SchemaType.BOOLEAN,
-                      description: 'Whether the candidate passed the interview. Set to true if you would pass the candidate in an interview, false otherwise.',
-                    },
-                    feedback: {
-                      type: SchemaType.STRING,
-                      description: "A written report for the hiring manager describing the candidate's overall performance that includes the things they did well and the things they need to improve on.",
-                    },
-                  },
-                  required: ['pass', 'feedback'],
-                },
-              },
-            ],
+            functionDeclarations: [storeFeedbackDeclaration],
           },
         ],
         generationConfig: {
+          responseModalities: "audio",
           temperature: 0.3,
           speechConfig: {
             voiceConfig: {
@@ -358,9 +314,9 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       handleDisconnect();
 
       if(!feedbackRef || feedbackRef == ""){
-        const pass = false;
+        const passed = false;
         const feedback = "No feedback available."
-        await saveInterviewFeedback({interviewId, userId, pass, feedback});
+        await saveInterviewFeedback({interviewId, userId, passed, feedback});
       }
       console.log("Quitting interview...");
       router.push(`/u/${userId}`);

@@ -4,7 +4,7 @@ import { FieldPath } from "firebase-admin/firestore";
 
 interface Feedback {
   interviewId: string;
-  pass: boolean;
+  passed: boolean;
 }
 
 export async function getInterview(interviewId: string) {
@@ -42,7 +42,7 @@ export async function getInterviewsOfUser(userId: string) {
     // Declare feedbackMap with key type string and value type boolean.
     const feedbackMap: Record<string, boolean> = {};
     feedbacks.forEach(feedback => {
-      feedbackMap[feedback.interviewId] = feedback.pass;
+      feedbackMap[feedback.interviewId] = feedback.passed;
     });
 
     const interviewIds = Array.from(new Set(feedbacks.map(fb => fb.interviewId)));
@@ -54,7 +54,7 @@ export async function getInterviewsOfUser(userId: string) {
 
     const combinedInterviews = interviewsSnapshot.docs.map(doc => {
       const interviewData = doc.data();
-      return { id: doc.id, ...interviewData, pass: feedbackMap[doc.id] };
+      return { id: doc.id, ...interviewData, passed: feedbackMap[doc.id] };
     });
 
     console.log("Combined Interviews:", combinedInterviews);

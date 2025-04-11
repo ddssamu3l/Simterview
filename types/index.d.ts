@@ -53,7 +53,7 @@ interface InterviewCardProps {
   createdAt: string;
   type: InterviewType;
   finalized: boolean;
-  pass?: boolean;
+  passed?: boolean;
 }
 
 interface InterviewGenerationProps {
@@ -117,6 +117,6 @@ interface TechIconProps {
 interface FeedbackProps{
   interviewId: string;
   userId: string;
-  pass: boolean;
+  passed: boolean;
   feedback: string;
 }
