@@ -5,11 +5,11 @@ import Image from 'next/image'
 import { cn } from '@/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const InterviewCard = ({id, name, length, difficulty, description, createdAt, questions, techStack, type, finalized, pass}: InterviewCardProps) => {
+const InterviewCard = ({id, name, length, difficulty, description, createdAt, questions, techStack, type, finalized, passed}: InterviewCardProps) => {
   
   return (
     <div className="card-border hover:bg-dark-300 w-[360px] max-sm:w-full min-h-64 cursor-pointer">
-      {/* <Link href={(pass != null && pass != undefined)
+      {/* <Link href={(passed != null && passed != undefined)
         ? `/interview/${id}/feedback`
         : `/interview/${id}`
       }> */}
@@ -17,8 +17,8 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
           <div className="flex">
             <div className="relative flex justify-between w-full">
               <p className="badge-text flex">
-                {(pass != null && pass != undefined) && (
-                  pass ? (
+                {(passed != null && passed != undefined) && (
+                passed ? (
                     <Image src="/check.svg" alt="checkmark" width={15} height={15} className="mr-4" />
                   ) : (
                     <Image src="/cross.svg" alt="crossmark" width={15} height={15} className="mr-4" />
@@ -36,7 +36,7 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
         </div>
         <div className="interview-title border-b flex flex-col items-center relative">
           <h2 className="text-center">{name}</h2>
-          {(pass != null) && (
+        {(passed != null) && (
             <p className="text-xs font-bold absolute bottom-1 right-1 text-slate-400">
               Feedback available
             </p>
