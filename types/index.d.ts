@@ -1,16 +1,20 @@
 interface Feedback {
-  id: string;
   interviewId: string;
-  totalScore: number;
-  categoryScores: Array<{
-    name: string;
-    score: number;
-    comment: string;
-  }>;
-  strengths: string[];
-  areasForImprovement: string[];
+  userId: string;
+  passed: boolean;
+  strengths: string;
+  areasForImprovement: string;
   finalAssessment: string;
   createdAt: string;
+}
+
+interface FeedbackForm {
+  interviewId: string;
+  userId: string;
+  passed: boolean;
+  strengths: string;
+  areasForImprovement: string;
+  finalAssessment: string;
 }
 
 type InterviewDifficulty = 'Beginner' | 'Intern' | 'Junior/New Grad' | "Mid Level" | "Senior";
@@ -26,7 +30,6 @@ interface Interview {
   techStack: string[];
   createdAt: string;
   type: InterviewType;
-  finalized: boolean;
 }
 
 interface CreateFeedbackParams {
@@ -44,15 +47,15 @@ interface User {
 
 interface InterviewCardProps {
   id: string;
+  feedbackId?: string;
   name: string;
   length: number;
   difficulty: InterviewDifficulty;
   description: string;
   questions: string[];
   techStack: string[];
-  createdAt: string;
+  savedAt: string;
   type: InterviewType;
-  finalized: boolean;
   passed?: boolean;
 }
 
@@ -114,9 +117,12 @@ interface TechIconProps {
   techStack: string[];
 }
 
-interface FeedbackProps{
-  interviewId: string;
-  userId: string;
-  passed: boolean;
-  feedback: string;
+interface Message {
+  role: 'user' | 'assistant' | "system";
+  content: {
+    text?: string;
+    modelTurn?: {
+      parts?: Array<{ text: string }>;
+    };
+  };
 }

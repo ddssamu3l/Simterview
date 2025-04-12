@@ -2,35 +2,21 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import InterviewCard from "@/components/InterviewCard";
-import { getInterviewsOfUser } from "@/app/api/interview/get/route";
-import { getCurrentUser } from "@/lib/actions/auth.action";
+import { getUserInterviewFeedbacks } from "@/lib/interview";
+import { useParams } from 'next/navigation'
 import { toast } from "sonner";
 
 export default function Page() {
-  const [user, setUser] = useState<any>(null);
+  const params = useParams<{ id: string }>();
+  const userId = params.id;
   const [interviews, setInterviews] = useState<any[] | undefined>([]);
-
-  // Fetch current user on mount
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error(error);
-        toast.error("Error fetching user information");
-      }
-    }
-    fetchUser();
-  }, []);
 
   // Once user is available, fetch interviews with feedback details
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     async function fetchInterviews() {
       try {
-        const result = await getInterviewsOfUser(user.id);
-        console.log(result.data);
+        const result = await getUserInterviewFeedbacks(userId);
         setInterviews(result.data);
       } catch (error) {
         console.error("Error fetching feedbacks:", error);
@@ -38,13 +24,14 @@ export default function Page() {
       }
     }
     fetchInterviews();
-  }, [user]);
+  }, [userId]);
 
   return (
     <section className="flex flex-col gap-6 mt-8 text-center">
       <h1 className="sm:text-5xl text-3xl">Your past interviews</h1>
       <div className="interviews-section flex justify-center flex-wrap">
         {interviews?.map((interview) => (
+          // interview.id actually refers to the feedback id that contains the feedback for that interview
           <InterviewCard key={interview.id} {...interview} />
         ))}
       </div>

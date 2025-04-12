@@ -1,18 +1,15 @@
 import React from 'react'
 import Image from 'next/image'
-// import Link from 'next/link';
+import Link from 'next/link';
 // import DisplayTechIcons from './DisplayTechIcons';
-import { cn } from '@/lib/utils';
+import { cn, formatISODate } from '@/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const InterviewCard = ({id, name, length, difficulty, description, createdAt, questions, techStack, type, finalized, passed}: InterviewCardProps) => {
+const InterviewCard = ({id, name, length, difficulty, description, savedAt, questions, techStack, type, passed}: InterviewCardProps) => {
   
   return (
     <div className="card-border hover:bg-dark-300 w-[360px] max-sm:w-full min-h-64 cursor-pointer">
-      {/* <Link href={(passed != null && passed != undefined)
-        ? `/interview/${id}/feedback`
-        : `/interview/${id}`
-      }> */}
+      <Link href={`/feedback/${id}`}>
         <div className="card-interview border-b">
           <div className="flex">
             <div className="relative flex justify-between w-full">
@@ -38,7 +35,7 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
           <h2 className="text-center">{name}</h2>
         {(passed != null) && (
             <p className="text-xs font-bold absolute bottom-1 right-1 text-slate-400">
-              Feedback available
+              Feedback on: {formatISODate(savedAt)}
             </p>
           )}
         </div>
@@ -46,7 +43,7 @@ const InterviewCard = ({id, name, length, difficulty, description, createdAt, qu
           <p className="text-sm">{description}</p>
           {/* <DisplayTechIcons techStack={techStack}></DisplayTechIcons> */}
         </div>
-      {/* </Link> */}
+      </Link>
     </div>
   )
 }

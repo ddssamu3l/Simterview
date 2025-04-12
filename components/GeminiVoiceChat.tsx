@@ -8,23 +8,13 @@ import { AudioStreamer } from '@/lib/audio-streamer';
 import Image from 'next/image'
 import { formatTime } from '@/lib/utils';
 import { Button } from './ui/button';
-import { interviewerSystemPrompt } from '@/public';
-import { getInterview } from '@/app/api/interview/get/route';
+import { interviewerSystemPrompt, interviewVoices } from '@/public';
+import { getInterview } from '@/lib/interview';
 import { toast } from 'sonner';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
 import { ToolCall } from '@/multimodal-live-types';
 import { saveInterviewFeedback } from '@/app/api/interview/post/route';
 import { useRouter } from 'next/navigation';
-
-interface Message {
-  role: 'user' | 'assistant' | "system";
-  content: {
-    text?: string;
-    modelTurn?: {
-      parts?: Array<{ text: string }>;
-    };
-  };
-}
 
 function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [connected, setConnected] = useState<boolean>(false);
@@ -48,7 +38,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clientRef = useRef<MultimodalLiveClient | null>(null);
   const router = useRouter();
-  const [feedbackRef, setFeedbackRef] = useState("");
+  const [feedbackSaved, setFeedbackSaved] = useState(false);
 
   // Properly typed refs for screen sharing
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -56,8 +46,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenCaptureStreamRef = useRef<MediaStream | null>(null);
   const screenCaptureIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const interviewVoices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede"];
 
   const storeFeedbackDeclaration: FunctionDeclaration = {
     name: "storeFeedback",
@@ -73,10 +61,28 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           type: SchemaType.STRING,
           description: "A written report for the hiring manager describing the candidate's overall performance, including strengths and areas for improvement.",
         },
+        strengths: {
+          type: SchemaType.STRING,
+          description: "Key strengths demonstrated by the candidate during the interview, such as technical knowledge, communication, or leadership.",
+        },
+        areasForImprovement: {
+          type: SchemaType.STRING,
+          description: "Specific areas where the candidate can improve, such as problem-solving, code optimization, or communication clarity.",
+        },
+        finalAssessment: {
+          type: SchemaType.STRING,
+          description: "A one paragraph summary of the candidate’s overall performance, useful for the hiring decision (e.g., 'Strong technical skills, but needs better communication').",
+        },
       },
-      required: ["passed", "feedback"],
+      required: [
+        "passed",
+        "feedback",
+        "strengths",
+        "areasForImprovement",
+        "finalAssessment",
+      ],
     },
-  }
+  };
 
   // Initial setup
   useEffect(() => {
@@ -123,12 +129,31 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           async function saveFeedback(){
             try{
               // Type assertion to tell TypeScript about the expected structure
-              const args = toolCall.functionCalls[0].args as { passed: boolean; feedback: string };
-              const passed = args.passed;
-              const feedback = args.feedback;
-              console.log("Written feedback: " + feedback);
-              await saveInterviewFeedback({ interviewId, userId, passed, feedback });
-              setFeedbackRef("saved");
+              const args = toolCall.functionCalls[0].args as {
+                passed: boolean;
+                feedback: string;
+                strengths: string;
+                areasForImprovement: string;
+                finalAssessment: string;
+              };
+
+              const { passed, feedback, strengths, areasForImprovement, finalAssessment } = args;
+
+              console.log("Written feedback:", feedback);
+              console.log("Strengths:", strengths);
+              console.log("Areas for Improvement:", areasForImprovement);
+              console.log("Final Assessment:", finalAssessment);
+
+              await saveInterviewFeedback({
+                interviewId,
+                userId,
+                passed,
+                finalAssessment,
+                strengths,
+                areasForImprovement,
+              });
+
+              setFeedbackSaved(true);
             }catch(error){
               console.error("Error: " + error);
             }
@@ -222,9 +247,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   // Connect to the API
   const handleConnect = async () => {
     try {
-      // select a random voice as the interviewer's voice
-      const voiceNumber = Math.floor(Math.random() * 5);
-
       const interviewDetailsSystemPrompt = `\n\n Interview type = ${interviewType}, Interview length = ${time}, Interview question: ${interviewQuestions}`;
 
       await clientRef.current?.connect({
@@ -243,7 +265,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
-                voiceName: interviewVoices[voiceNumber],
+                voiceName: "Aoede",
               },
             },
           },
@@ -252,6 +274,24 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
       setConnected(true);
       sendSystemMessage("The candidate has joined. Please greet the candidate!");
+
+      if (!feedbackSaved) {
+        console.log("No feedback for this interview yet. Setting default feedback...");
+        const passed = false;
+        const strengths = "N/A";
+        const areasForImprovement = "N/A";
+        const finalAssessment = "No feedback available";
+
+        await saveInterviewFeedback({
+          interviewId,
+          userId,
+          passed,
+          strengths,
+          areasForImprovement,
+          finalAssessment,
+        });
+        setFeedbackSaved(true);
+      }
     } catch (error) {
       console.error('Connection error:', error);
     }
@@ -312,12 +352,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const handleQuit = async() => {
     try{
       handleDisconnect();
-
-      if(!feedbackRef || feedbackRef == ""){
-        const passed = false;
-        const feedback = "No feedback available."
-        await saveInterviewFeedback({interviewId, userId, passed, feedback});
-      }
       console.log("Quitting interview...");
       router.push(`/u/${userId}`);
     }catch(error){
