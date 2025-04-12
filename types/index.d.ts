@@ -126,3 +126,22 @@ interface Message {
     };
   };
 }
+
+interface CombinedResult extends Interview {
+  id: string; // This will be the feedback's id
+  passed: boolean;
+}
+
+interface InterviewFeedbackResponse {
+  success: boolean;
+  data?: CombinedResult[];
+  status: number;
+  error?: string;
+}
+
+interface FeedbackResponse {
+  success: boolean;
+  data?: Feedback;
+  status: number;
+  error?: string;
+}

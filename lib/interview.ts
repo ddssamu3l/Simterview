@@ -2,18 +2,6 @@
 import { db } from "@/firebase/admin"
 import { FieldPath } from "firebase-admin/firestore";
 
-interface CombinedResult extends Interview {
-  id: string; // This will be the feedback's id
-  passed: boolean;
-}
-
-interface FeedbackResponse {
-  success: boolean;
-  data?: CombinedResult[];
-  status: number;
-  error?: string;
-}
-
 export async function getInterview(interviewId: string) {
   try {
     const interviewSnapshot = await db.collection('interviews').doc(interviewId).get();
@@ -42,7 +30,7 @@ export async function getInterview(interviewId: string) {
  * @param {string} userId - The ID of the user to get feedbacks for
  * @returns {Promise<FeedbackResponse>}
  */
-export async function getUserInterviewFeedbacks(userId: string): Promise<FeedbackResponse> {
+export async function getUserInterviewFeedbacks(userId: string): Promise<InterviewFeedbackResponse> {
   try {
     // 1. Get all feedback documents for this user
     const userFeedbacksSnapshot = await db
