@@ -1,13 +1,24 @@
-import React from 'react'
+"use client"
+import React, { useState } from 'react'
 import Image from 'next/image'
 import { formatISODate } from '@/lib/utils'
+import { useRouter } from 'next/navigation';
+import { Button } from './ui/button';
 
 const FeedbackCard = ({ interviewId, userId, passed, strengths, areasForImprovement, finalAssessment, createdAt }: Feedback) => {
+  const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+
+  function retakeInterview(){
+    setIsRedirecting(true);
+    router.push(`/live-interview/${interviewId}`);
+  }
   return (
     <div className="card-border w-full max-w-2xl mx-auto min-h-196 max-sm:min-h-128 max-h-[90vh] bg-transparent">
       {/* Header - similar to InterviewCard header */}
       <div className="card-interview border-b py-3">
-        <div className="flex justify-between px-4 max-sm:px-0">
+        <div className="flex justify-between max-sm:px-0">
           <div className="flex items-center">
             <h2 className="text-lg max-sm:text-base font-bold text-slate-200">
               Interview Feedback
@@ -33,10 +44,10 @@ const FeedbackCard = ({ interviewId, userId, passed, strengths, areasForImprovem
       {/* Final Assessment - highlighted like a grade */}
       <div className="border-b py-4 px-4 min-h-96 max-sm:min-h-64">
         <div className="flex justify-between items-start">
-          <h3 className="text-md font-bold text-slate-300">Final Assessment:</h3>
-          {/* <div className="bg-transparent border px-6 py-3 text-center">
-            <p className="text-slate-200">{passed ? 'PASS' : 'FAIL'}</p>
-          </div> */}
+          <h3 className="text-lg font-bold text-slate-300">Final Assessment</h3>
+          <Button type="button" className="max-sm:max-w-[80px] max-sm:text-sm font-bold cursor-pointer" onClick={retakeInterview}>
+            {isRedirecting? "Redirecting" : "Retake"}
+          </Button>
         </div>
         <div className="mt-3 bg-transparent p-3">
           <p className="text-sm text-slate-300">{finalAssessment}</p>
