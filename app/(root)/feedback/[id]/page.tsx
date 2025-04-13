@@ -1,4 +1,5 @@
 "use client"
+import FeedbackCard from '@/components/FeedBackCard';
 import { getFeedback } from '@/lib/feedback';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
@@ -23,6 +24,8 @@ export default function Page() {
   },[])
   
   return (
-    <div>{feedback?.finalAssessment}</div>
+    <div className="flex items-center w-full">
+      {feedback && <FeedbackCard {...feedback} />}
+    </div>
   )
 }
