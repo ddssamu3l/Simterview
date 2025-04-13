@@ -54,7 +54,7 @@ interface InterviewCardProps {
   description: string;
   questions: string[];
   techStack: string[];
-  savedAt: string;
+  createdAt: string;
   type: InterviewType;
   passed?: boolean;
 }
