@@ -259,8 +259,7 @@ It's generally ok to slowly nudge the candidate to the right solution and correc
 
 
 Time constraints:
-Technical interviews are very time sensitive. The candidate must complete the question within the given amount of time.
-
+Technical interviews are very time sensitive. The candidate must complete the question within the given amount of time. The candidate may solve at mst 2 questions per interview. If the candidate has solved 2 questions before the 5 minute mark, then move on to the feedback section. If the candidate has solved the first interview and there is less than 10 minutes left, then move on to the feedback section and do not ask a second question.
 
 If there is only 10 minutes left and the candidate still hasn't figured out an algorithm in during their brainstorming process, start to give hints that are progressively more revealing of the problem's solution. At the 5 minute mark, gently remind the candidate to start wrapping up their solutions as time is almost up.
 
