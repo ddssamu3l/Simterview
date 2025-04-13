@@ -29,7 +29,7 @@ export async function saveInterviewFeedback({ interviewId, userId, passed, stren
 
 
     // if not, create a new feedback
-    feedbacksRef.add(newFeedback);
+    await feedbacksRef.add(newFeedback);
     return {success: true, status: 200};
   }catch(error){  
     console.error("Error saving interview feedback: " + JSON.stringify(error));
