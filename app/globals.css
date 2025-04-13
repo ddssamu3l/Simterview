@@ -150,7 +150,7 @@
   }
 
   h1 {
-    @apply text-4xl max-sm:text-2xl font-bold text-light-100;
+    @apply text-3xl sm:text-5xl font-bold text-light-100;
   }
 
   h2 {

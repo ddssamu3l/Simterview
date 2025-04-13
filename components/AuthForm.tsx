@@ -23,6 +23,7 @@ import {
 import { auth } from '@/firebase/client'
 import { signIn, signUp, handleGitHubAuth } from '@/lib/actions/auth.action'
 
+const redirectRoute = "/";
 type FormType = 'sign-in' | 'sign-up';
 
 const authFormSchema = (type: FormType) => {
@@ -59,7 +60,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
 
         if (authResult.success) {
           toast.success("GitHub authentication successful!");
-          router.push("/interview-list");
+          router.push(redirectRoute);
         } else {
           toast.error(authResult.message || "Authentication failed");
         }
@@ -112,7 +113,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
         await signIn({
           email, idToken,
         });
-        router.push("/interview-list");
+        router.push(redirectRoute);
       } else {
         const { email, password } = values;
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -126,7 +127,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
         await signIn({
           email, idToken,
         })
-        router.push("/interview-list");
+        router.push(redirectRoute);
       }
     } catch (error: any) {
       console.error(error);
@@ -140,34 +141,48 @@ const AuthForm = ({ type }: { type: FormType }) => {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
-    <div className="card-border min-w-[380px] lg:min-w-[566px]">
-      <div className="flex flex-col gap-6 card py-14 px-10">
-        <div className="flex flex-row gap-2 justify-center">
-          <Image
-            src="/icon.png"
-            alt="simterview icon"
-            height={50}
-            width={44}
-            unoptimized
-          />
-          <h1 className="text-light-100">Simterview</h1>
+    <div className="card-border min-w-[380px] lg:min-w-[566px] bg-transparent">
+      <div className="flex flex-col gap-8 py-12 px-8 lg:px-10">
+        {/* Logo and title */}
+        <div className="flex flex-col items-center space-y-6">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/icon.png"
+              alt="simterview icon"
+              height={50}
+              width={44}
+              unoptimized
+            />
+            <h1 className="text-light-100 text-2xl font-bold">Simterview</h1>
+          </div>
+          <h3 className="text-light-100 text-xl text-center">
+            Practice SWE interviews with AI
+          </h3>
         </div>
-        <h3 className="text-light-100 text-xl lg:text-2xl">Practice SWE interviews with AI</h3>
+
+        {/* GitHub sign-in button */}
         <Button
-          className="bg-transparent hover:bg-dark-300 border text-light-100 w-full mt-4 font-bold"
+          className="bg-dark-300 hover:bg-dark-200 border border-dark-100 text-light-100 w-full font-medium flex items-center gap-3 h-12"
           onClick={signInWithGitHub}
           disabled={isLoading}
         >
-          <Image src="/github.svg" alt="GitHub logo" width={24} height={24} unoptimized />
-          {(isSignIn)
-            ? <p>Sign in with GitHub</p>
-            : <p>Sign up with GitHub</p>
-          }
+          <Image src="/github.svg" alt="GitHub logo" width={22} height={22} unoptimized />
+          <span>
+            {isSignIn ? "Sign in with GitHub" : "Sign up with GitHub"}
+          </span>
         </Button>
 
+        {/* Divider */}
+        <div className="relative flex items-center">
+          <div className="flex-grow border-t border-slate-700"></div>
+          <span className="mx-4 text-sm text-slate-400">or continue with email</span>
+          <div className="flex-grow border-t border-slate-700"></div>
+        </div>
+
+        {/* Form */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-4 mt-2 form">
-            {(!isSignIn) && (
+          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-5">
+            {!isSignIn && (
               <FormField
                 control={form.control}
                 name="name"
@@ -190,42 +205,47 @@ const AuthForm = ({ type }: { type: FormType }) => {
               placeholder="Your password"
               type={showPassword ? 'text' : 'password'}
             />
-            <div className="items-top flex space-x-2">
+
+            {/* Checkbox styling */}
+            <div className="flex items-center space-x-2 pt-1">
               <Checkbox
                 id="show-password"
                 checked={showPassword}
                 onCheckedChange={() => setShowPassword(!showPassword)}
+                className="border-slate-500"
               />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="show-password"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  show password
-                </label>
-              </div>
+              <label
+                htmlFor="show-password"
+                className="text-sm text-slate-300 leading-none cursor-pointer"
+              >
+                Show password
+              </label>
             </div>
+
+            {/* Submit button */}
             <Button
               type="submit"
-              className="mt-6 font-bold"
+              className="w-full mt-4 h-12 font-bold"
               disabled={isLoading}
             >
-              {isLoading ? "Processing..." : (isSignIn ? 'Sign in' : "Create an account")}
+              {isLoading ? "Processing..." : (isSignIn ? "Sign in" : "Create an account")}
             </Button>
           </form>
         </Form>
-        <p className="text-center mt-[-2]">
-          {(isSignIn) ? 'Don\'t have an account?' : 'Have an account already?'}
+
+        {/* Account toggle link */}
+        <p className="text-center text-slate-300 text-sm">
+          {isSignIn ? "Don't have an account?" : "Have an account already?"}
           <Link
-            href={(isSignIn) ? '/sign-up' : '/sign-in'}
-            className="font-bold text-user-primary ml-1"
+            href={isSignIn ? '/sign-up' : '/sign-in'}
+            className="font-bold text-user-primary ml-2"
           >
-            {(isSignIn) ? "Sign up" : "Sign in"}
+            {isSignIn ? "Sign up" : "Sign in"}
           </Link>
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 export default AuthForm
