@@ -3,32 +3,46 @@ import Image from 'next/image'
 import React from 'react'
 import { Button } from './ui/button'
 
-const NavBar = ({username, userId}: {username: string, userId: string}) => {
-  const userProfilePath = "/u/"+userId;
+const NavBar = ({ username, userId }: { username: string, userId: string }) => {
+  const userProfilePath = "/u/" + userId;
+
   return (
-    <div className="w-full border-b h-[7vh]">
-      <nav className="flex justify-between">
-        <Link href="/" className="flex items-center gap-2 hover: mouse-pointer">
-          <Image
-            src="/icon.png"
-            alt="logo"
-            width={50}
-            height={44}
-            unoptimized
-          />
-          <h2 className="font-bold max-sm:text-xl">Simterview</h2>
-        </Link>
-        {(username !== "") 
-        ? <Link href={userProfilePath}><h2 className="flex items-center font-bold max-sm:hidden">{username}</h2></Link>
-        : <Button className="font-bold sm:w-[120px] hover:mouse-pointer">
-            <Link href="/sign-in">
-              Sign-In
-            </Link>
-          </Button>
-        }
-        
-      </nav>
-    </div>
+    <header className="w-full border-b">
+      <div className="max-w-6xl mx-auto px-4">
+        <nav className="flex justify-between items-center h-16">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-90">
+            <Image
+              src="/icon.png"
+              alt="logo"
+              width={40}
+              height={40}
+              unoptimized
+            />
+            <h2 className="font-bold text-xl">Simterview</h2>
+          </Link>
+
+          <div className="flex items-center gap-6">
+            {(username !== "")
+              ? (
+                <Link href={userProfilePath} className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                    <span className="text-sm font-bold">{username.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <span className="font-medium max-sm:hidden">{username}</span>
+                </Link>
+              )
+              : (
+                <Button className="font-bold">
+                  <Link href="/sign-in">
+                    Sign In
+                  </Link>
+                </Button>
+              )
+            }
+          </div>
+        </nav>
+      </div>
+    </header>
   )
 }
 

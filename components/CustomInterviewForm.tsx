@@ -67,27 +67,34 @@ const CustomInterviewForm = () => {
   }
 
   return (
-    <div className="flex items-center justify-center mx-auto max-w-7xl h-screen max-sm:px-4 max-sm:py-8 mt-[-96]">
-      <div className="card-border max-sm:border-none min-w-[300px] lg:min-w-[566px] max-w-lg">
-        <div className="flex flex-col gap-6 card py-14 px-10">
-          <div className="flex flex-row gap-2 justify-center">
-            <h1 className="text-light-100">Custom Interview</h1>
+    <div className="flex items-center justify-center mx-auto max-w-7xl h-screen max-sm:px-4 max-sm:py-8">
+      <div className="card-border min-w-[300px] lg:min-w-[566px] max-w-lg bg-transparent">
+        <div className="flex flex-col gap-8 py-12 px-8 lg:px-10">
+          {/* Header */}
+          <div className="flex flex-col items-center space-y-4">
+            <div className="flex flex-row gap-2 justify-center">
+              <h2 className="text-light-100 text-xl font-bold">Custom Interview</h2>
+            </div>
+            <p className="text-light-300 text-sm text-center">
+              Configure your interview settings below
+            </p>
           </div>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-4 mt-2 form">
 
+          {/* Form */}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-5">
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="label">Interview Type*</FormLabel>
+                    <FormLabel className="text-sm font-medium text-light-200">Interview Type*</FormLabel>
                     <FormControl>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-11 bg-dark-300 border-dark-100">
                           <SelectValue placeholder="Select interview type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -108,9 +115,13 @@ const CustomInterviewForm = () => {
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="label">Role*</FormLabel>
+                    <FormLabel className="text-sm font-medium text-light-200">Role*</FormLabel>
                     <FormControl>
-                      <Input placeholder="Write interview role..."{...field} />
+                      <Input
+                        placeholder="Write interview role..."
+                        className="h-11 bg-dark-300 border-dark-100"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -122,13 +133,13 @@ const CustomInterviewForm = () => {
                 name="length"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="label">Length*</FormLabel>
+                    <FormLabel className="text-sm font-medium text-light-200">Length*</FormLabel>
                     <FormControl>
                       <Select
                         onValueChange={(value) => field.onChange(parseInt(value))}
                         defaultValue={field.value.toString()}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-11 bg-dark-300 border-dark-100">
                           <SelectValue placeholder="Select interview duration" />
                         </SelectTrigger>
                         <SelectContent>
@@ -152,13 +163,13 @@ const CustomInterviewForm = () => {
                 name="difficulty"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="label">Difficulty*</FormLabel>
+                    <FormLabel className="text-sm font-medium text-light-200">Difficulty*</FormLabel>
                     <FormControl>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-11 bg-dark-300 border-dark-100">
                           <SelectValue placeholder="Select difficulty level" />
                         </SelectTrigger>
                         <SelectContent>
@@ -182,11 +193,13 @@ const CustomInterviewForm = () => {
                   name="jobDescription"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="label">Job Description (optional)</FormLabel>
+                      <FormLabel className="text-sm font-medium text-light-200">
+                        Job Description (optional)
+                      </FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Paste job description here..."
-                          className="max-sm:min-h-[120px] max-sm:max-h-[120px] min-h-[200px] max-h-[200px]"
+                          className="max-sm:min-h-[120px] max-sm:max-h-[120px] min-h-[180px] max-h-[180px] bg-dark-300 border-dark-100"
                           style={{ resize: "none" }}
                           {...field}
                         />
@@ -197,20 +210,20 @@ const CustomInterviewForm = () => {
                 />
               )}
 
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  className="w-full py-3 rounded-md font-bold"
-                >
-                  {isGenerating? "Generating..." : "Create Interview"}
-                </Button>
-              </div>
+              {/* Submit button */}
+              <Button
+                type="submit"
+                className="w-full h-12 font-bold mt-6"
+                disabled={isGenerating}
+              >
+                {isGenerating ? "Generating..." : "Create Interview"}
+              </Button>
             </form>
           </Form>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default CustomInterviewForm
