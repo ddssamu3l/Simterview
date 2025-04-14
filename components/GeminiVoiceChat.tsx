@@ -15,6 +15,7 @@ import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
 import { ToolCall } from '@/multimodal-live-types';
 import { saveInterviewFeedback } from '@/app/api/interview/post/route';
 import { useRouter } from 'next/navigation';
+import { initializeFeedback } from '@/lib/feedback';
 
 function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [connected, setConnected] = useState<boolean>(false);
@@ -148,9 +149,9 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
                 interviewId,
                 userId,
                 passed,
-                finalAssessment,
                 strengths,
                 areasForImprovement,
+                finalAssessment,
               });
 
               setFeedbackSaved(true);
@@ -275,23 +276,8 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       setConnected(true);
       sendSystemMessage("The candidate has joined. Please greet the candidate!");
 
-      if (!feedbackSaved) {
-        console.log("No feedback for this interview yet. Setting default feedback...");
-        const passed = false;
-        const strengths = "N/A";
-        const areasForImprovement = "N/A";
-        const finalAssessment = "No feedback available";
-
-        await saveInterviewFeedback({
-          interviewId,
-          userId,
-          passed,
-          strengths,
-          areasForImprovement,
-          finalAssessment,
-        });
-        setFeedbackSaved(true);
-      }
+      await initializeFeedback(userId, interviewId);
+      
     } catch (error) {
       console.error('Connection error:', error);
     }
