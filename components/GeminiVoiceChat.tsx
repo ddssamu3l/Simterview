@@ -12,15 +12,17 @@ import { interviewerSystemPrompt, interviewVoices } from '@/public';
 import { getInterview } from '@/lib/interview';
 import { toast } from 'sonner';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
-import { ToolCall } from '@/multimodal-live-types';
+import { ModelTurn, ServerContent, ToolCall } from '@/multimodal-live-types';
 import { saveInterviewFeedback } from '@/app/api/interview/post/route';
 import { useRouter } from 'next/navigation';
 import { initializeFeedback } from '@/lib/feedback';
 
+import { createClient, SpeakRestClient } from '@deepgram/sdk'
+import { getDeepGramResponse } from '@/app/api/deepgram/post/route';
+
 function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [connected, setConnected] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [lastAssistantMessage, setLastAssistantMessage] = useState<Message>();
   const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
   const [isSpeaking, setisSpeaking] = useState(false);
   const [interviewReady, setInterviewReady] = useState(false);
@@ -47,6 +49,8 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const screenCaptureStreamRef = useRef<MediaStream | null>(null);
   const screenCaptureIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
 
   const storeFeedbackDeclaration: FunctionDeclaration = {
     name: "storeFeedback",
@@ -122,6 +126,76 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       clientRef.current.on('close', (event) => {
         console.log("WebSocket connection closed", event);
         setConnected(false);
+        // Reset messages
+        setMessages([]);
+        // reset timer
+        setTime(interviewLength * 60);
+      });
+
+      const lastAssistantMessage = { current: '' };
+
+      clientRef.current.on('content', (data: any) => {
+        if (data?.modelTurn?.parts?.[0]?.text) {
+          const transcriptText = data.modelTurn.parts[0].text;
+          lastAssistantMessage.current += transcriptText;
+        }
+      });
+
+      clientRef.current.on('turncomplete', () => {
+        console.log("Turn complete. Complete message: " + lastAssistantMessage.current);
+
+        // Add message to conversation history even if empty to debug
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: {
+            text: lastAssistantMessage.current,
+          }
+        }]);
+
+        const getAudio = async () => {
+          let base64Audio: string | undefined;
+
+          try {
+            const res = await getDeepGramResponse(lastAssistantMessage.current);
+            if (res.data) base64Audio = res.data;
+          } catch (error) {
+            console.error("Error with DeepGram during audio processing:", error);
+            toast.error("Error with DeepGram during audio processing");
+            return;
+          }
+
+          if (!base64Audio) {
+            console.error("Failed to get audio data.");
+            return;
+          }
+
+          // Convert base64 to Uint8Array buffer
+          const audioBuffer = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0));
+
+          // Send to streamer
+          if (audioStreamerRef.current) {
+            audioStreamerRef.current.addPCM16(audioBuffer);
+            setisSpeaking(true);
+
+            const dataLength = audioBuffer.byteLength;
+            if (dataLength === 0 || dataLength < 100) {
+              setTimeout(() => setisSpeaking(false), 500);
+            }
+          }
+        };
+        getAudio();
+      });
+
+      clientRef.current.on('interrupted', () => {
+        console.log("Interrupted. Complete message: " + lastAssistantMessage);
+
+        // Add message to conversation history even if empty to debug
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: {
+            text: lastAssistantMessage.current || "[No text transcript]",
+          }
+        }]);
       });
 
       clientRef.current.on('toolcall', (toolCall: ToolCall) => {
@@ -261,7 +335,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           },
         ],
         generationConfig: {
-          responseModalities: "audio",
+          responseModalities: "text",
           temperature: 0.3,
           speechConfig: {
             voiceConfig: {
@@ -301,11 +375,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     if (screenSharing) {
       stopScreenCapture();
     }
-    
-    // Reset messages
-    setMessages([]);
-    // reset timer
-    setTime(interviewLength * 60);
   };
 
   // Toggle microphone for audio recording
@@ -460,22 +529,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     }
   };
 
-  // Send text message to the AI from the user
-  // const sendMessage = (text: string) => {
-  //   if (connected && text.trim() && clientRef.current) {
-  //     try {
-  //       clientRef.current.send({ text });
-  //       setMessages(prev => [...prev, { role: 'user', content: { text } }]);
-  //     } catch (error) {
-  //       console.error("Failed to send message:", error);
-  //       // If the WebSocket isn't connected, reconnect
-  //       if (error instanceof Error && error.message === "WebSocket is not connected") {
-  //         handleConnect(); // Attempt to reconnect
-  //       }
-  //     }
-  //   }
-  // };
-
   const sendSystemMessage = (text: string) => {
     if (connected && text.trim() && clientRef.current) {
       try {
@@ -512,12 +565,12 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           </div>
           <h3>AI Recruiter</h3>
           
-          {/* Display the transcript from the AI */}
-          {lastAssistantMessage && lastAssistantMessage.content.text && (
-            <div className=" mt-4 p-3 bg-primary-100 text-black rounded-lg max-w-md text-sm">
-              <p>{lastAssistantMessage.content.text}</p>
+          {/* Display the transcript from the AI
+          {lastAssistantMessage && (
+            <div className=" mt-4 p-3 text-black rounded-lg max-w-md text-sm">
+              <p>{lastAssistantMessage}</p>
             </div>
-          )}
+          )} */}
         </div>
 
         <div className="card-border border-primary-200/50 ">
