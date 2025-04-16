@@ -10,7 +10,6 @@ const FeedbackCard = ({ interviewId, userId, passed, strengths, areasForImprovem
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-
   function retakeInterview(){
     setIsRedirecting(true);
     router.push(`/live-interview/${interviewId}`);
