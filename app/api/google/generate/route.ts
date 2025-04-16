@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_A
 
 export async function generateCustomInterview(type: string, role: string, length: number, difficulty: string, jobDescription: string | undefined, uid: string){
   try{
-    // generate the questions, techstacks, and description
+    // generate the questions, and description
     const interviewGenerationPrompt = `Generate interview content for a ${difficulty} ${role} role (${length} min).
 
       ${jobDescription ? "Job description: " + jobDescription : ""}
@@ -16,8 +16,8 @@ export async function generateCustomInterview(type: string, role: string, length
       If "behavioral":
       - Provide EXACTLY 5-7 behavioral questions covering: personal background, teamwork, problem-solving, leadership, adaptability.
       - DO NOT include coding/technical algorithm questions.
-      - Provide a mix of generic/standard questions as well as some nuanced questions.
-      - If a job description is provided, extract 1-2 key technologies (techStack).
+      - The first question should ALWAYS be about self-introduction.
+      - Provide a mix of generic/standard questions as well as some nuanced questions. Tailor some quesitons to the job description if provided.
       - Behavioral questions are going to be read by a voice assisrtant so do not use '/' or '*' or any characters that will break text-to-speech algorithms.
 
       If "technical":
@@ -43,18 +43,13 @@ export async function generateCustomInterview(type: string, role: string, length
               type: Type.STRING,
               description: "Brief interview summary (15 words max)",
             },
-            techStack: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Array of up to 2 key technologies (empty for technical interviews or behavioral interviews with no job descriptions)",
-            },
             questions: {
               type: Type.ARRAY,
               items: { type: Type.STRING },
               description: "Either 5-7 behavioral questions or 5 LeetCode problem numbers",
             },
           },
-          required: ["description", "techStack", "questions"],
+          required: ["description", "questions"],
         },
         temperature: 1,
       },
@@ -70,7 +65,6 @@ export async function generateCustomInterview(type: string, role: string, length
       createdBy: uid,
       createdAt: new Date().toISOString(),
       questions: data.questions,
-      techStack: data.techStack,
     }
 
     const res = await db.collection("interviews").add(newInterview);

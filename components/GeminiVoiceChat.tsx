@@ -36,7 +36,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const [screenSharing, setScreenSharing] = useState(false);
-  const defaultFramerate = 1;
+  const defaultFramerate = 2;
   const [framerate, setFramerate] = useState(defaultFramerate);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clientRef = useRef<MultimodalLiveClient | null>(null);
@@ -62,10 +62,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           type: SchemaType.BOOLEAN,
           description: "Whether the candidate passed the interview. Set to true if you would pass the candidate in an interview, false otherwise.",
         },
-        feedback: {
-          type: SchemaType.STRING,
-          description: "A written report for the hiring manager describing the candidate's overall performance, including strengths and areas for improvement.",
-        },
         strengths: {
           type: SchemaType.STRING,
           description: "Key strengths demonstrated by the candidate during the interview, such as technical knowledge, communication, or leadership.",
@@ -76,12 +72,11 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         },
         finalAssessment: {
           type: SchemaType.STRING,
-          description: "A one paragraph summary of the candidate’s overall performance, useful for the hiring decision (e.g., 'Strong technical skills, but needs better communication').",
+          description: "A 2-paragraph written report for the hiring manager describing the candidate's overall performance, including strengths and areas for improvement. Provide specific examples.').",
         },
       },
       required: [
         "passed",
-        "feedback",
         "strengths",
         "areasForImprovement",
         "finalAssessment",
@@ -141,62 +136,62 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         }
       });
 
-      clientRef.current.on('turncomplete', () => {
-        console.log("Turn complete. Complete message: " + lastAssistantMessage.current);
+      // clientRef.current.on('turncomplete', () => {
+      //   console.log("Turn complete. Complete message: " + lastAssistantMessage.current);
 
-        // Add message to conversation history even if empty to debug
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: {
-            text: lastAssistantMessage.current,
-          }
-        }]);
+      //   // Add message to conversation history even if empty to debug
+      //   setMessages(prev => [...prev, {
+      //     role: 'assistant',
+      //     content: {
+      //       text: lastAssistantMessage.current,
+      //     }
+      //   }]);
 
-        const getAudio = async () => {
-          let base64Audio: string | undefined;
+      //   const getAudio = async () => {
+      //     let base64Audio: string | undefined;
 
-          try {
-            const res = await getDeepGramResponse(lastAssistantMessage.current);
-            if (res.data) base64Audio = res.data;
-          } catch (error) {
-            console.error("Error with DeepGram during audio processing:", error);
-            toast.error("Error with DeepGram during audio processing");
-            return;
-          }
+      //     try {
+      //       const res = await getDeepGramResponse(lastAssistantMessage.current);
+      //       if (res.data) base64Audio = res.data;
+      //     } catch (error) {
+      //       console.error("Error with DeepGram during audio processing:", error);
+      //       toast.error("Error with DeepGram during audio processing");
+      //       return;
+      //     }
 
-          if (!base64Audio) {
-            console.error("Failed to get audio data.");
-            return;
-          }
+      //     if (!base64Audio) {
+      //       console.error("Failed to get audio data.");
+      //       return;
+      //     }
 
-          // Convert base64 to Uint8Array buffer
-          const audioBuffer = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0));
+      //     // Convert base64 to Uint8Array buffer
+      //     const audioBuffer = Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0));
 
-          // Send to streamer
-          if (audioStreamerRef.current) {
-            audioStreamerRef.current.addPCM16(audioBuffer);
-            setisSpeaking(true);
+      //     // Send to streamer
+      //     if (audioStreamerRef.current) {
+      //       audioStreamerRef.current.addPCM16(audioBuffer);
+      //       setisSpeaking(true);
 
-            const dataLength = audioBuffer.byteLength;
-            if (dataLength === 0 || dataLength < 100) {
-              setTimeout(() => setisSpeaking(false), 500);
-            }
-          }
-        };
-        getAudio();
-      });
+      //       const dataLength = audioBuffer.byteLength;
+      //       if (dataLength === 0 || dataLength < 100) {
+      //         setTimeout(() => setisSpeaking(false), 500);
+      //       }
+      //     }
+      //   };
+      //   getAudio();
+      // });
 
-      clientRef.current.on('interrupted', () => {
-        console.log("Interrupted. Complete message: " + lastAssistantMessage);
+      // clientRef.current.on('interrupted', () => {
+      //   console.log("Interrupted. Complete message: " + lastAssistantMessage);
 
-        // Add message to conversation history even if empty to debug
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: {
-            text: lastAssistantMessage.current || "[No text transcript]",
-          }
-        }]);
-      });
+      //   // Add message to conversation history even if empty to debug
+      //   setMessages(prev => [...prev, {
+      //     role: 'assistant',
+      //     content: {
+      //       text: lastAssistantMessage.current || "[No text transcript]",
+      //     }
+      //   }]);
+      // });
 
       clientRef.current.on('toolcall', (toolCall: ToolCall) => {
         if (toolCall.functionCalls[0].name === "storeFeedback"){
@@ -206,18 +201,16 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
               // Type assertion to tell TypeScript about the expected structure
               const args = toolCall.functionCalls[0].args as {
                 passed: boolean;
-                feedback: string;
                 strengths: string;
                 areasForImprovement: string;
                 finalAssessment: string;
               };
 
-              const { passed, feedback, strengths, areasForImprovement, finalAssessment } = args;
+              const { passed, strengths, areasForImprovement, finalAssessment } = args;
 
-              console.log("Written feedback:", feedback);
+              console.log("Written feedback:", finalAssessment);
               console.log("Strengths:", strengths);
               console.log("Areas for Improvement:", areasForImprovement);
-              console.log("Final Assessment:", finalAssessment);
 
               await saveInterviewFeedback({
                 interviewId,
@@ -296,13 +289,10 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       setTime(prev => prev - 1);
     }, 1000);
 
-    // if less than 5 minutes left, inform the AI recruiter
-    if(time == 600){
-      sendSystemMessage("There is only 10 minutes left in the interview.");
-    }
-
-    if(time == 300){
-      sendSystemMessage("There is only 5 minute left in the interview. Tell the candidate that you are wrapping up the interview (don't ask any more interview questions) and you'll need a second in order to generate a comprehensive analysis.");
+    if(time % 60 == 0){
+      const minutesLeft = time/60;
+      sendSystemMessage("There are " + minutesLeft + " minutes left.");
+      console.log(minutesLeft + " minutes left");
     }
 
     return () => clearInterval(intervalId);
@@ -335,8 +325,8 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           },
         ],
         generationConfig: {
-          responseModalities: "text",
-          temperature: 0.3,
+          responseModalities: "audio",
+          temperature: 0.1,
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {

@@ -51,7 +51,7 @@ const FeedbackCard = ({ interviewId, userId, passed, strengths, areasForImprovem
           </Button>
         </div>
         <div className="mt-3 bg-transparent p-3">
-          <p className="text-sm text-slate-300">{finalAssessment}</p>
+          <p className="text-base text-slate-300">{finalAssessment}</p>
         </div>
       </div>
 
@@ -61,7 +61,7 @@ const FeedbackCard = ({ interviewId, userId, passed, strengths, areasForImprovem
           <h3 className="text-sm font-bold text-slate-300">Strengths</h3>
           <div className="border-b border-slate-600 w-2/3"></div>
         </div>
-        <p className="text-sm text-slate-400">{strengths}</p>
+        <p className="text-base text-slate-400">{strengths}</p>
       </div>
 
       <div className="py-3 px-4 min-h-36 max-sm:min-h-24">
@@ -69,7 +69,7 @@ const FeedbackCard = ({ interviewId, userId, passed, strengths, areasForImprovem
           <h3 className="text-sm font-bold text-slate-300">Areas for Improvement</h3>
           <div className="border-b border-slate-600 w-2/3"></div>
         </div>
-        <p className="text-sm text-slate-400">{areasForImprovement}</p>
+        <p className="text-base text-slate-400">{areasForImprovement}</p>
       </div>
     </div>
   )

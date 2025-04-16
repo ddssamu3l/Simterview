@@ -144,7 +144,7 @@ const CustomInterviewForm = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value="6">6 minutes</SelectItem>
+                            <SelectItem value="15">15 minutes</SelectItem>
                             <SelectItem value="25">25 minutes</SelectItem>
                             <SelectItem value="30">30 minutes</SelectItem>
                             <SelectItem value="45">45 minutes</SelectItem>

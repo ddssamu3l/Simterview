@@ -27,7 +27,6 @@ interface Interview {
   difficulty: InterviewDifficulty;
   description: string;
   questions: string[];
-  techStack: string[];
   createdAt: string;
   type: InterviewType;
 }
@@ -53,7 +52,6 @@ interface InterviewCardProps {
   difficulty: InterviewDifficulty;
   description: string;
   questions: string[];
-  techStack: string[];
   createdAt: string;
   type: InterviewType;
   passed?: boolean;
@@ -109,12 +107,7 @@ interface InterviewFormProps {
   role: string;
   level: string;
   type: string;
-  techStack: string[];
   amount: number;
-}
-
-interface TechIconProps {
-  techStack: string[];
 }
 
 interface Message {
