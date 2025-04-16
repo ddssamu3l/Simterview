@@ -1,5 +1,5 @@
 "use client"
-import FeedbackCard from '@/components/FeedbackCard';
+import FeedbackCard from '@/components/AssessmentCard';
 import { getFeedback } from '@/lib/feedback';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
