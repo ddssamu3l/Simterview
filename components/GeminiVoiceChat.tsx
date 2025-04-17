@@ -123,8 +123,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         setConnected(false);
         // Reset messages
         setMessages([]);
-        // reset timer
-        setTime(interviewLength * 60);
       });
 
       const lastAssistantMessage = { current: '' };
@@ -289,7 +287,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       setTime(prev => prev - 1);
     }, 1000);
 
-    if(time % 60 == 0){
+    if(time % 300 == 0){
       const minutesLeft = time/60;
       sendSystemMessage("There are " + minutesLeft + " minutes left.");
       console.log(minutesLeft + " minutes left");
@@ -365,6 +363,12 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     if (screenSharing) {
       stopScreenCapture();
     }
+
+    setConnected(false);
+    // Reset messages
+    setMessages([]);
+    // reset timer
+    setTime(interviewLength * 60);
   };
 
   // Toggle microphone for audio recording
