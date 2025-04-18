@@ -22,6 +22,12 @@ const NavBar = ({ username, userId }: { username: string, userId: string }) => {
           </Link>
 
           <div className="flex items-center gap-6">
+            <Link href="/custom-interview" className="text-slate-300" >
+              Generate Interview
+            </Link>
+            <Link href="/interview-list" className="text-slate-300">
+              Interview List
+            </Link>
             {(username !== "")
               ? (
                 <Link href={userProfilePath} className="flex items-center gap-2">

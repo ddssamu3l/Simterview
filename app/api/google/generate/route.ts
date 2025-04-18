@@ -11,28 +11,28 @@ export async function generateCustomInterview(type: string, role: string, length
 
       ${jobDescription ? "Job description: " + jobDescription : ""}
 
-      IMPORTANT: Interview type is "${type}". Generate ONLY questions for this type.
+      ROLE: Interview Q Gen. TYPE:"${type}". OUTPUT: Questions ONLY. Description summary (15 words MAX) also.
 
-      If "behavioral":
-      - Provide EXACTLY 5-7 behavioral questions covering: personal background, teamwork, problem-solving, leadership, adaptability.
-      - DO NOT include coding/technical algorithm questions.
-      - The first question should ALWAYS be about self-introduction.
-      - Provide a mix of generic/standard questions as well as some nuanced questions. Tailor some quesitons to the job description if provided.
-      - Behavioral questions are going to be read by a voice assisrtant so do not use '/' or '*' or any characters that will break text-to-speech algorithms.
+      IF TYPE="behavioral":
+        GEN 5-7 Qs: background, teamwork, problem-solving, leadership, adaptability. NO code/algo Qs.
+        1st Q: Self-intro.
+        Mix generic/nuanced Qs. Tailor to job desc (if avail).
+        TXT2SPEECH safe: NO / * or special chars.
 
-      If "technical":
-      - Find 5 LeetCode problems suited to difficulty (do NOT give problems that are well-known, trivial or is from the blind 75 problem list):
-        * Beginner: LeetCode easy difficulty
-        * Intern: easier medium
-        * Junior/New Grad: standard medium
-        * Mid Level: harder medium
-        * Senior: hard
-      - Include ONLY the problem number. e.g ["15", "24", "39", "139", "237"]
-      - DO NOT include any behavioral questions."
-      `;
+      IF TYPE="technical":
+        FIND 1 LeetCode (NOT well-known, trivial, or Blind 75). DIFF based on role:
+          Beginner: Easy
+          Intern/New Grad/Junior: Med
+          Mid: Harder Med
+          Senior: Hard
+        SOLE PURPOSE: Write the problem description and 2-3 input+output examples in VALID HTML code. OUTPUT: HTML ONLY. NO extra text, explanations, etc. Use <pre><code> tags for multi-line code. NO behavioral Qs.
+        HTML FORMAT EXAMPLE:
+        <p><strong>Problem Description:</strong></p> <p>Given an <code>m x n</code> 2D binary grid <code>grid</code> which represents a map of <code>'1'</code>s (land) and <code>'0'</code>s (water), return the number of islands.</p> <p>An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically. You may assume all four edges of the grid are all surrounded by water.</p> <p><strong>Constraints:</strong></p> <ul> <li><code>m == grid.length</code></li> <li><code>n == grid[i].length</code></li> <li><code>1 <= m, n <= 300</code></li> <li><code>grid[i][j]</code> is <code>'0'</code> or <code>'1'</code>.</li> </ul> <p><strong>Example 1:</strong></p> <pre><code> Input: grid = [ ["1","1","1","1","0"], ["1","1","0","1","0"], ["1","1","0","0","0"], ["0","0","0","0","0"] ] Output: 1 </code></pre> <p><strong>Explanation:</strong> There is one island (i.e., one group of connected 1s).</p> <p><strong>Example 2:</strong></p> <pre><code> Input: grid = [ ["1","1","0","0","0"], ["1","1","0","0","0"], ["0","0","1","0","0"], ["0","0","0","1","1"] ] Output: 3 </code></pre> <p><strong>Explanation:</strong> There are three islands.</p>
+      ADD description: STRING, 15 words MAX. #Brief interview summary
+    `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-lite",
       contents: interviewGenerationPrompt,
       config: {
         responseMimeType: "application/json",
@@ -46,7 +46,7 @@ export async function generateCustomInterview(type: string, role: string, length
             questions: {
               type: Type.ARRAY,
               items: { type: Type.STRING },
-              description: "Either 5-7 behavioral questions or 5 LeetCode problem numbers",
+              description: "Either 5-7 behavioral questions or 1 LeetCode problem description",
             },
           },
           required: ["description", "questions"],

@@ -8,17 +8,17 @@ import { AudioStreamer } from '@/lib/audio-streamer';
 import Image from 'next/image'
 import { formatTime } from '@/lib/utils';
 import { Button } from './ui/button';
-import { interviewerSystemPrompt, interviewVoices } from '@/public';
+import { interviewerSystemPrompt, geminiVoices } from '@/public';
 import { getInterview } from '@/lib/interview';
 import { toast } from 'sonner';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
 import { ModelTurn, ServerContent, ToolCall } from '@/multimodal-live-types';
 import { saveInterviewFeedback } from '@/app/api/interview/post/route';
 import { useRouter } from 'next/navigation';
-import { initializeFeedback } from '@/lib/feedback';
 
 import { createClient, SpeakRestClient } from '@deepgram/sdk'
 import { getDeepGramResponse } from '@/app/api/deepgram/post/route';
+import CodeEditor from './CodeEditor';
 
 function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [connected, setConnected] = useState<boolean>(false);
@@ -26,29 +26,24 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
   const [isSpeaking, setisSpeaking] = useState(false);
   const [interviewReady, setInterviewReady] = useState(false);
+  const [interviewDifficulty, setInterviewDifficulty] = useState("Intern");
   const [interviewType, setInterviewType] = useState("");
   const [isBehavioral, setIsBehavioral] = useState(false);
   const [interviewLength, setInterviewLength] = useState(0);
   const [time, setTime] = useState(0);
   const [interviewQuestions, setInterviewQuestions] = useState([""]);
+  const [lastCodeOutput, setLastCodeOutput] = useState<string>('');
 
   // Type your refs with the appropriate classes or null
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
-  const [screenSharing, setScreenSharing] = useState(false);
-  const defaultFramerate = 2;
-  const [framerate, setFramerate] = useState(defaultFramerate);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clientRef = useRef<MultimodalLiveClient | null>(null);
   const router = useRouter();
-  const [feedbackSaved, setFeedbackSaved] = useState(false);
 
   // Properly typed refs for screen sharing
-  const videoRef = useRef<HTMLVideoElement>(null);
   const hiddenVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const screenCaptureStreamRef = useRef<MediaStream | null>(null);
-  const screenCaptureIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const deepgram = createClient(process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY);
 
@@ -96,6 +91,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         try{
           const interviewDetails = await getInterview(interviewId);
           if(interviewDetails.data && interviewDetails.data.createdBy === userId){
+            setInterviewDifficulty(interviewDetails.data.difficulty);
             setInterviewType(interviewDetails.data.type);
             setInterviewLength(interviewDetails.data.length);
             setInterviewQuestions(interviewDetails.data.questions);
@@ -218,8 +214,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
                 areasForImprovement,
                 finalAssessment,
               });
-
-              setFeedbackSaved(true);
             }catch(error){
               console.error("Error: " + error);
             }
@@ -255,24 +249,10 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       audioStreamerRef.current = new AudioStreamer(audioCtx);
     }
 
-    // dynamic framerate setting
-    const handleKeyPress = () => {
-      setFramerate(15); 
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        setFramerate(defaultFramerate);
-      }, 500);
-    };
-    window.addEventListener('keydown', handleKeyPress);
-
     return () => {
       if (clientRef.current) {
         clientRef.current.disconnect();
       }
-      window.removeEventListener('keydown', handleKeyPress);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [interviewId]);
@@ -296,21 +276,12 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     return () => clearInterval(intervalId);
   }, [time, connected]);
 
-  // dynamic framerate switching
-  useEffect(() => {
-    // clear the previous framerate interval and set the new framerate interval
-    if (screenCaptureIntervalRef.current) {
-      clearInterval(screenCaptureIntervalRef.current);
-    }
-    screenCaptureIntervalRef.current = setInterval(() => {
-      captureAndSendFrame();
-    }, 1000 / framerate);
-  }, [framerate])
-
   // Connect to the API
   const handleConnect = async () => {
     try {
-      const interviewDetailsSystemPrompt = `\n\n Interview type = ${interviewType}, Interview length = ${time}, Interview question: ${interviewQuestions}`;
+      const interviewDetailsSystemPrompt = `\n\n Interview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview question: ${interviewQuestions}`;
+
+      const random = Math.floor(Math.random() * 5);
 
       await clientRef.current?.connect({
         model: "models/gemini-2.0-flash-exp",
@@ -324,11 +295,11 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         ],
         generationConfig: {
           responseModalities: "audio",
-          temperature: 0.1,
+          temperature: 0.5,
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: {
-                voiceName: "Aoede",
+                voiceName: geminiVoices[random],
               },
             },
           },
@@ -336,10 +307,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       });
 
       setConnected(true);
-      sendSystemMessage("The candidate has joined. Please greet the candidate!");
-
-      await initializeFeedback(userId, interviewId);
-      
+      sendSystemMessage("The candidate has joined. Please greet the candidate!");      
     } catch (error) {
       console.error('Connection error:', error);
     }
@@ -357,11 +325,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       audioRecorderRef.current.stop();
       audioRecorderRef.current = null;
       setAudioEnabled(false);
-    }
-    
-    // Stop screen sharing if active
-    if (screenSharing) {
-      stopScreenCapture();
     }
 
     setConnected(false);
@@ -411,118 +374,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     }
   }
 
-  // Start screen capture
-  const startScreenCapture = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { 
-          frameRate: { ideal: 15 },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        }
-      });
-
-      screenCaptureStreamRef.current = mediaStream;
-
-      // Set both video elements to the same stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      
-      if (hiddenVideoRef.current) {
-        hiddenVideoRef.current.srcObject = mediaStream;
-      }
-
-      // Set up screen capture framerate
-      screenCaptureIntervalRef.current = setInterval(() => {
-        captureAndSendFrame();
-      }, 1000/defaultFramerate);
-
-      setScreenSharing(true);
-
-      // Listen for when user stops sharing
-      mediaStream.getTracks()[0].onended = () => {
-        stopScreenCapture();
-      };
-      
-      // Send a message to inform the AI that screen sharing has started
-      if (connected && clientRef.current) {
-        sendSystemMessage("The user has shared their screen. Let the user know once you can see it.");
-      }
-    } catch (error) {
-      console.error('Screen sharing error:', error);
-    }
-  };
-
-  // Stop screen capture
-  const stopScreenCapture = () => {
-    if (screenCaptureStreamRef.current) {
-      screenCaptureStreamRef.current.getTracks().forEach(track => track.stop());
-      screenCaptureStreamRef.current = null;
-    }
-
-    if (screenCaptureIntervalRef.current) {
-      clearInterval(screenCaptureIntervalRef.current);
-      screenCaptureIntervalRef.current = null;
-    }
-
-    // Clear both video elements
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    
-    if (hiddenVideoRef.current) {
-      hiddenVideoRef.current.srcObject = null;
-    }
-
-    setScreenSharing(false);
-    
-    // Inform the AI that screen sharing has stopped
-    if (connected && clientRef.current) {
-      sendSystemMessage("The user has stopped sharing their screen.");
-    }
-  };
-
-  // Capture and send a frame from the screen
-  const captureAndSendFrame = () => {
-    if (!connected || !screenCaptureStreamRef.current || !hiddenVideoRef.current || !canvasRef.current || !clientRef.current) {
-      return;
-    }
-
-    const video = hiddenVideoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      console.error('Failed to get canvas context');
-      return;
-    }
-
-    // Resize to 25% of original (to reduce bandwidth)
-    canvas.width = video.videoWidth * 0.25;
-    canvas.height = video.videoHeight * 0.25;
-
-    if (canvas.width > 0 && canvas.height > 0) {
-      try {
-        // Draw the current video frame to the canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Convert canvas to base64 JPEG
-        const base64 = canvas.toDataURL('image/jpeg', 0.8);
-
-        // Get just the base64 data part (remove the prefix)
-        const data = base64.slice(base64.indexOf(',') + 1);
-
-        // Send to AI
-        clientRef.current.sendRealtimeInput([
-          { mimeType: 'image/jpeg', data }
-        ]);
-      } catch (error) {
-        console.error('Error capturing or sending frame:', error);
-      }
-    }
-  };
-
   const sendSystemMessage = (text: string) => {
     if (connected && text.trim() && clientRef.current) {
       try {
@@ -538,95 +389,147 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
     }
   };
 
-  return (
-    <div className="flex flex-col call-view">
-      <div>
-        {!isBehavioral && 
-          <div className="text-xl font-semibold text-center">
-            Capture framerate: {framerate}
-          </div>
-        }
-        <div className="text-xl font-semibold text-center">
-          Time:{formatTime(time)}
-        </div>
-      </div>
-     
-      <div className="flex flex-row gap-4 w-6xl max-w-[90vw]">
-        <div className="card-interviewer">
-          <div className="avatar">
-            <Image src="/icon.png" alt="vapi" width={65} height={54} className="object-cover" />
-            {isSpeaking && <span className="animate-speak"></span>}
-          </div>
-          <h3>AI Recruiter</h3>
-          
-          {/* Display the transcript from the AI
-          {lastAssistantMessage && (
-            <div className=" mt-4 p-3 text-black rounded-lg max-w-md text-sm">
-              <p>{lastAssistantMessage}</p>
-            </div>
-          )} */}
-        </div>
+  const updateCodeOutput = (output: string, code: string) => {
+    console.log("Code output: " + output);
+    sendSystemMessage(`Candidate ran the code. \nOutput: ${output}\n\nCandidate's code: ${code}`);
+  }
+  const updateCode = (code: string) => {
+    console.log("Code: " + code);
+    sendSystemMessage(`Current candidate code: ${code}`);
+  }
 
-        <div className="card-border border-primary-200/50 ">
-          <div className="card-content">
-            <Image src="/icon.png" alt="user avatar" width={540} height={540} className="rounded-full object-cover size-[120px]" />
-            <h3>{username}</h3>
+  return (
+    <div className="flex flex-col call-view h-full">
+      {isBehavioral ? (
+        // Original UI for Behavioral interviews
+        <>
+          <div>
+            <div className="text-xl font-semibold text-center">
+              Time:{formatTime(time)}
+            </div>
           </div>
-        </div>
-      </div>
-        
-      <div className="w-full flex max-sm:flex-col max-sm items-center justify-center gap-6 mb-4 font-bold rounded-sm">
-        {!connected ? (
-          <Button
-            disabled={!interviewReady}
-            onClick={handleConnect}
-            className="w-[150px] bg-white text-black font-bold px-4 py-2"
-          >
-            Start Interview
-          </Button>
-        ) : (
-          <>
-            <Button
-              onClick={handleDisconnect}
-              className="w-[150px] bg-red-500 text-white font-semibold"
-            >
-              Start Over
-            </Button>
-            <Button
-              onClick={toggleMicrophone}
-              className={`${audioEnabled ? 'bg-red-400' : 'bg-green-500'} w-[150px] text-white font-semibold`}
-            >
-              {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
-            </Button>
+         
+          <div className="flex flex-row gap-4 w-6xl max-w-[90vw]">
+            <div className="card-interviewer">
+              <div className="avatar">
+                <Image src="/icon.png" alt="vapi" width={65} height={54} className="object-cover" />
+                {isSpeaking && <span className="animate-speak"></span>}
+              </div>
+              <h3>AI Recruiter</h3>
+            </div>
+
+            <div className="card-border border-primary-200/50 ">
+              <div className="card-content">
+                <Image src="/icon.png" alt="user avatar" width={540} height={540} className="rounded-full object-cover size-[120px]" />
+                <h3>{username}</h3>
+              </div>
+            </div>
+          </div>
             
-            {!isBehavioral && (
-              !screenSharing ? (
+          <div className="w-full flex max-sm:flex-col max-sm items-center justify-center gap-6 mb-4 font-bold rounded-sm">
+            {!connected ? (
+              <Button
+                disabled={!interviewReady}
+                onClick={handleConnect}
+                className="w-[150px] bg-white text-black font-bold px-4 py-2 hover:cursor-pointer"
+              >
+                Start Interview
+              </Button>
+            ) : (
+              <>
                 <Button
-                  onClick={startScreenCapture}
-                  className="w-[150px] bg-purple-500 text-white font-semibold"
+                  onClick={handleDisconnect}
+                  className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
                 >
-                  Share Screen
+                  Start Over
+                </Button>
+                <Button
+                  onClick={toggleMicrophone}
+                  className={`${audioEnabled ? 'bg-red-400' : 'bg-green-500'} w-[150px] text-white font-semibold hover:cursor-pointer`}
+                >
+                  {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
+                </Button>
+                <Button
+                  onClick={handleQuit}
+                  className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
+                >
+                  Quit Interview
+                </Button>
+              </>
+            )}
+          </div>
+        </>
+      ) : (
+        // New UI for Technical interviews
+        <div className="flex flex-col h-full w-full border-b">
+          {/* Timer at the top */}
+          <div className="py-4">
+            <div className="text-2xl font-semibold text-center">
+              Time: {formatTime(time)}
+            </div>
+          </div>
+          
+          {/* Large empty box in the middle */}
+          <div className="border rounded-lg flex-grow flex flex-row items-center justify-center overflow-hidden">
+            {connected
+            ?
+              <>
+                <div id="question-box" className="flex h-full w-[650px] border-r px-4 py-3">
+                  <div className="text-base overflow-scroll" dangerouslySetInnerHTML={{ __html: interviewQuestions[0] }} />
+                </div>
+                <div className="w-full h-full">
+                  <CodeEditor 
+                    onRun={(output, code) => updateCodeOutput(output, code)}
+                    onCodeChange={(code) => updateCode(code)}
+                  />
+                </div>
+              </>
+            :
+              <div >
+                  Press: Start Interview
+              </div>
+            }
+          </div>
+          
+          {/* Controls at the bottom */}
+          <div className="py-4">
+            <div className="w-full flex items-center justify-center gap-6 font-bold">
+              {!connected ? (
+                <Button
+                  disabled={!interviewReady}
+                  onClick={handleConnect}
+                  className="w-[150px] bg-white text-black font-bold px-4 py-2 hover:cursor-pointer"
+                >
+                  Start Interview
                 </Button>
               ) : (
-                <Button
-                  onClick={stopScreenCapture}
-                  className="w-[150px] bg-red-400 text-white font-semibold"
-                >
-                  Stop Sharing
-                </Button>
-              )
-            )}
-              <Button
-                onClick={handleQuit}
-                className="w-[150px] bg-red-500 text-white font-semibold"
-              >
-                Quit Interview
-              </Button>
-          </>
-        )}
-      </div>
+                <>
+                  <Button
+                    onClick={handleDisconnect}
+                    className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
+                  >
+                    Start Over
+                  </Button>
+                  <Button
+                    onClick={toggleMicrophone}
+                    className={`${audioEnabled ? 'bg-red-400' : 'bg-green-500'} w-[150px] text-white font-semibold hover:cursor-pointer`}
+                  >
+                    {audioEnabled ? 'Mute Microphone' : 'Enable Microphone'}
+                  </Button>
+                  <Button
+                    onClick={handleQuit}
+                    className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
+                  >
+                    Quit Interview
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
-      <div className="w-full flex justify-center gap-6 mt-12">
+      <div className="hidden">
         <video
           ref={hiddenVideoRef}
           className="hidden"
@@ -637,26 +540,6 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
           ref={canvasRef}
           className="hidden"
         />
-
-        {screenSharing && (
-          <div className="fixed bottom-4 right-4 border border-gray-300 rounded shadow-lg overflow-hidden z-10">
-            <div className="bg-black text-white text-xs p-1 flex justify-between items-center">
-              <span>Screen sharing (AI can see this)</span>
-              <button
-                onClick={stopScreenCapture}
-                className="bg-red-500 text-white px-2 py-0.5 rounded text-xs"
-              >
-                Stop
-              </button>
-            </div>
-            <video
-              ref={videoRef}
-              className="w-64 h-auto"
-              autoPlay
-              muted
-            />
-          </div>
-        )}
       </div>
     </div>
   )

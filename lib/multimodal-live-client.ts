@@ -77,7 +77,7 @@ export class MultimodalLiveClient extends EventEmitter<MultimodalLiveClientEvent
     super();
     url =
       url ||
-      `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
+      `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent`;
     url += `?key=${apiKey}`;
     this.url = url;
     this.send = this.send.bind(this);

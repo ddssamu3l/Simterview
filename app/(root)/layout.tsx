@@ -9,7 +9,9 @@ const RootLayout = async ({children}: {children: ReactNode}) => {
   return (
     <div className="root-layout">
       <NavBar username={username} userId={userId}/>
-      {children}
+      <main className="flex-1 flex flex-col">
+        {children}
+      </main>
     </div>
   )
 }

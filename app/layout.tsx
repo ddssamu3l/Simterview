@@ -11,6 +11,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Simterview",
   description: "Practice your technical interviewing skills against an AI recruiter",
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default function RootLayout({
