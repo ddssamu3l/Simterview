@@ -40,24 +40,24 @@ export default function Page() {
 
       {!isLoading ? (
         interviews && interviews.length > 0 ? (
-          <div className="flex flex-wrap justify-center gap-6">
+          <div className="flex flex-wrap justify-center gap-4">
             {interviews.map((interview) => (
               <InterviewCard key={interview.id} {...interview} />
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center py-16 border rounded-md bg-dark-100">
+          <div className="flex flex-col items-center py-16 border rounded-md ">
             <Image
-              src="/empty-state.svg"
+              src="/confused.png"
               alt="No interviews"
               width={120}
               height={120}
               className="mb-6 opacity-60"
               unoptimized
             />
-            <h3 className="text-xl font-medium text-slate-200 mb-2">No interviews yet</h3>
-            <p className="text-slate-400 mb-6 max-w-md text-center">Complete your first interview to see your performance analysis here</p>
-            <Button asChild className="btn-primary">
+            <h3 className="text-xl font-medium mb-2">No interviews yet</h3>
+            <p className="mb-6 max-w-md text-center">Complete your first interview to see your performance analysis here</p>
+            <Button asChild className="btn-primary text-black">
               <Link href="/custom-interview">Start an interview</Link>
             </Button>
           </div>

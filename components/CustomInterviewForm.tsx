@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { generateCustomInterview } from '@/app/api/google/generate/route'
 import { auth } from '@/firebase/client'
 import { useRouter } from 'next/navigation'
+import { initializeFeedback } from '@/lib/feedback'
 
 const interviewFormSchema = z.object({
   type: z.enum(["behavioral", "technical"]),
@@ -49,12 +50,15 @@ const CustomInterviewForm = () => {
       const uid = user.uid;
       // generate a new interview and get its id from the backend
       const { id } = await generateCustomInterview(type, role, length, difficulty, jobDescription, uid);
-      if(id){
-        toast.success("Interview generated successfully!");
-        router.push(`/live-interview/${id}`);
-      }else{
+      if(!id){
         throw new Error
+        toast.error("Error generating interview");
       }
+      // initialize a blank feedback
+      await initializeFeedback(uid, id);
+
+      toast.success("Interview generated successfully!");
+      router.push(`/live-interview/${id}`);
     }catch(error){
       if (error instanceof Error && error.message !== "NEXT_REDIRECT"){
         console.error("Error generating custom interview: " + error);
@@ -144,7 +148,7 @@ const CustomInterviewForm = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value="6">6 minutes</SelectItem>
+                            <SelectItem value="15">15 minutes</SelectItem>
                             <SelectItem value="25">25 minutes</SelectItem>
                             <SelectItem value="30">30 minutes</SelectItem>
                             <SelectItem value="45">45 minutes</SelectItem>

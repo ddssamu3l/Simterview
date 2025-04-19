@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-const VolMeterWorket = `
-  class VolMeter extends AudioWorkletProcessor {
+const VolMeterWorklet = `
+  class VolMeterProcessor extends AudioWorkletProcessor {
     volume
     updateIntervalInMS
     nextUpdateFrame
@@ -33,7 +33,7 @@ const VolMeterWorket = `
     }
 
     get intervalInFrames() {
-      return (this.updateIntervalInMS / 1000) * sampleRate
+      return (this.updateIntervalInMS / 1000) * this.sampleRate
     }
 
     process(inputs) {
@@ -60,6 +60,8 @@ const VolMeterWorket = `
 
       return true
     }
-  }`;
+  }
+  
+  registerProcessor('vu-meter', VolMeterProcessor)`;
 
-export default VolMeterWorket;
+export default VolMeterWorklet;

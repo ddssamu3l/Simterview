@@ -1,26 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-var */
-/**
- * Copyright 2024 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 import { audioContext } from "./utils";
 import AudioRecordingWorklet from "./worklets/audio-processing";
-import VolMeterWorket from "./worklets/vol-meter";
+import VolMeterWorklet from "./worklets/vol-meter";
 
-import { createWorketFromSrc } from "./audioworklet-registry";
+import { createWorkletFromSrc } from "./audioworklet-registry";
 import EventEmitter from "eventemitter3";
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -57,13 +42,20 @@ export class AudioRecorder extends EventEmitter {
       this.audioContext = await audioContext({ sampleRate: this.sampleRate });
       this.source = this.audioContext.createMediaStreamSource(this.stream);
 
-      const workletName = "audio-recorder-worklet";
-      const src = createWorketFromSrc(workletName, AudioRecordingWorklet);
+      const workletName = "audio-processing-worklet-vad";
+      const src = createWorkletFromSrc(workletName, AudioRecordingWorklet);
 
       await this.audioContext.audioWorklet.addModule(src);
       this.recordingWorklet = new AudioWorkletNode(
         this.audioContext,
         workletName,
+        {
+          processorOptions: {
+            sampleRate: this.audioContext.sampleRate,
+            silenceDurationSec: 1,
+            maxBufferDuration: 15,
+          }
+        }
       );
 
       this.recordingWorklet.port.onmessage = async (ev: MessageEvent) => {
@@ -77,17 +69,24 @@ export class AudioRecorder extends EventEmitter {
       };
       this.source.connect(this.recordingWorklet);
 
-      // vu meter worklet
-      const vuWorkletName = "vu-meter";
-      await this.audioContext.audioWorklet.addModule(
-        createWorketFromSrc(vuWorkletName, VolMeterWorket),
-      );
-      this.vuWorklet = new AudioWorkletNode(this.audioContext, vuWorkletName);
-      this.vuWorklet.port.onmessage = (ev: MessageEvent) => {
-        this.emit("volume", ev.data.volume);
-      };
-
-      this.source.connect(this.vuWorklet);
+      try {
+        // vu meter worklet
+        const vuWorkletName = "vu-meter";
+        await this.audioContext.audioWorklet.addModule(
+          createWorkletFromSrc(vuWorkletName, VolMeterWorklet)
+        );
+        this.vuWorklet = new AudioWorkletNode(this.audioContext, vuWorkletName);
+        
+        this.vuWorklet.port.onmessage = (ev: MessageEvent) => {
+          this.emit("volume", ev.data.volume);
+        };
+        this.source.connect(this.vuWorklet);
+      } catch (error) {
+        console.error("Error initializing vu-meter worklet:", error);
+        // Continue even if the VU meter fails
+        this.vuWorklet = undefined;
+      }
+      // VU meter setup is done in the try block above
       this.recording = true;
       resolve();
       this.starting = null;

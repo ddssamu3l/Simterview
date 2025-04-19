@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { cn, formatISODate } from '@/lib/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const InterviewCard = ({ id, name, length, difficulty, description, createdAt, questions, techStack, type, passed }: InterviewCardProps) => {
+const InterviewCard = ({ id, name, length, difficulty, description, createdAt, questions, type, passed }: InterviewCardProps) => {
   return (
     <div className="card-border hover:bg-dark-300 w-[360px] max-sm:w-full min-h-64 cursor-pointer transition-colors duration-200">
       <Link href={`/feedback/${id}`}>
@@ -38,9 +38,8 @@ const InterviewCard = ({ id, name, length, difficulty, description, createdAt, q
             </p>
           )}
         </div>
-        <div className={cn("interview-description px-4 py-4 text-start", techStack.length > 0 ? "justify-between text-start" : "justify-center")}>
-          <p className="text-sm text-slate-300 line-clamp-3">{description}</p>
-          {/* <DisplayTechIcons techStack={techStack}></DisplayTechIcons> */}
+        <div className={cn("interview-description px-4 py-4 text-start justify-center")}>
+          <p className="text-sm text-slate-400 line-clamp-3">{description}</p>
         </div>
       </Link>
     </div>

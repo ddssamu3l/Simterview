@@ -29,12 +29,13 @@ export const registeredWorklets: Map<
   Record<string, WorkletGraph>
 > = new Map();
 
-export const createWorketFromSrc = (
+export const createWorkletFromSrc = (
   workletName: string,
   workletSrc: string,
 ) => {
+  // Just use the worklet source directly without additional registerProcessor call
   const script = new Blob(
-    [`registerProcessor("${workletName}", ${workletSrc})`],
+    [workletSrc],
     {
       type: "application/javascript",
     },

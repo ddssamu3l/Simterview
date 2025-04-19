@@ -12,7 +12,13 @@ export async function saveInterviewFeedback({ interviewId, userId, passed, stren
 
     if(!snapshot.empty){
       const docRef = snapshot.docs[0].ref;
-      await docRef.update({ passed: passed, finalAssessment: finalAssessment, savedAt: new Date().toISOString() });
+      await docRef.update({ 
+        passed: passed, 
+        finalAssessment: finalAssessment,
+        strengths: strengths,
+        areasForImprovement: areasForImprovement,
+        createdAt: new Date().toISOString() 
+      });
       console.log(`Feedback updated successfully. interviewId: ${interviewId} userId: ${userId}`);
       return {success: true, status: 200};
     }

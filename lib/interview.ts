@@ -11,14 +11,15 @@ export async function getInterview(interviewId: string) {
     }
     console.log(interviewSnapshot.data());
 
-    const { length, questions, type, createdBy } = interviewSnapshot.data() as {
+    const { difficulty, length, questions, type, createdBy } = interviewSnapshot.data() as {
+      difficulty: string;
       length: number,
       questions: string[];
       type: string;
       createdBy: string;
     };
 
-    return { success: true, status: 200, data: { length, questions, type, createdBy } };
+    return { success: true, status: 200, data: { difficulty, length, questions, type, createdBy } };
   } catch (error) {
     console.error("Error fetching interview details: " + error);
     return { success: false, status: 500 }
@@ -32,83 +33,72 @@ export async function getInterview(interviewId: string) {
  */
 export async function getUserInterviewFeedbacks(userId: string): Promise<InterviewFeedbackResponse> {
   try {
-    // 1. Get all feedback documents for this user
-    const userFeedbacksSnapshot = await db
+    // 1. Fetch feedbacks for this user, ordered by createdAt descending
+    const feedbacksSnapshot = await db
       .collection("feedbacks")
       .where("userId", "==", userId)
+      .orderBy("createdAt", "desc")
       .get();
 
-    // If no feedbacks found, return empty array
-    if (userFeedbacksSnapshot.empty) {
+    if (feedbacksSnapshot.empty) {
       return { success: true, data: [], status: 200 };
     }
 
-    // 2. Extract feedback IDs and interviewIDs
-    const feedbacksData: { feedbackId: string; interviewId: string; passed: boolean }[] = [];
-    const interviewIds: string[] = [];
-
-    userFeedbacksSnapshot.forEach(doc => {
+    // 2. Extract feedback info in sorted order
+    const feedbacksData = feedbacksSnapshot.docs.map(doc => {
       const feedback = doc.data() as Feedback;
-      feedbacksData.push({
+      return {
         feedbackId: doc.id,
         interviewId: feedback.interviewId,
-        passed: feedback.passed, // Ensure this matches your field name in Firestore
-      });
-      interviewIds.push(feedback.interviewId);
-    });
-
-    // Create a mapping from interviewId to feedbackId
-    const interviewToFeedbackMap: Record<string, { id: string, passed: boolean }> = {};
-    feedbacksData.forEach(item => {
-      // Initialize the object first
-      interviewToFeedbackMap[item.interviewId] = {
-        id: item.feedbackId,
-        passed: item.passed
+        passed: feedback.passed,
       };
     });
+    const interviewIds = feedbacksData.map(f => f.interviewId);
 
-    // 3. Get the matching interviews in batches (Firestore has a limit of 10 'in' clauses)
-    const combinedResults: CombinedResult[] = [];
-
-    for (let i = 0; i < interviewIds.length; i += 10) {
-      const batchIds = interviewIds.slice(i, i + 10);
-
-      // Skip empty batches
-      if (batchIds.length === 0) continue;
-
-      const interviewsSnapshot = await db
-        .collection("interviews")
-        .where(FieldPath.documentId(), "in", batchIds)
-        .get();
-
-      // Combine interview data with corresponding feedback id
-      interviewsSnapshot.forEach(doc => {
-        const interviewId = doc.id;
-        const interviewData = doc.data() as Interview;
-        const feedbackInfo = interviewToFeedbackMap[interviewId];
-
-        if (feedbackInfo) {
-          combinedResults.push({
-            ...interviewData,
-            id: feedbackInfo.id, // Use the feedback's id as the id
-            passed: feedbackInfo.passed,
-          });
-        }
-      });
+    // 3. Batch‐fetch the interviews (Firestore 'in' limit is 10 per query)
+    const BATCH_SIZE = 10;
+    const batchPromises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
+    for (let i = 0; i < interviewIds.length; i += BATCH_SIZE) {
+      const batchIds = interviewIds.slice(i, i + BATCH_SIZE);
+      batchPromises.push(
+        db
+          .collection("interviews")
+          .where(FieldPath.documentId(), "in", batchIds)
+          .get()
+      );
     }
+    const snapshots = await Promise.all(batchPromises);
+    const interviewDocs = snapshots.flatMap(snap => snap.docs);
+
+    // 4. Build a map of interviewId → interview data
+    const interviewDataMap: Record<string, Interview> = {};
+    interviewDocs.forEach(doc => {
+      interviewDataMap[doc.id] = doc.data() as Interview;
+    });
+
+    // 5. Combine in the same order as feedbacks (most recent first)
+    const combinedResults: CombinedResult[] = feedbacksData.map(
+      ({ feedbackId, interviewId, passed }) => {
+        const interview = interviewDataMap[interviewId];
+        return {
+          ...interview,
+          id: feedbackId,
+          passed,
+        };
+      }
+    );
 
     return {
       success: true,
       data: combinedResults,
-      status: 200
+      status: 200,
     };
-
   } catch (error) {
     console.error(`Error fetching interviews for user ${userId}:`, error);
     return {
       success: false,
       status: 500,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }
