@@ -17,7 +17,7 @@
  */
 
 import {
-  createWorketFromSrc,
+  createWorkletFromSrc,
   registeredWorklets,
 } from "./audioworklet-registry";
 
@@ -66,7 +66,7 @@ export class AudioStreamer {
     // create new record to fill in as becomes available
     workletsRecord[workletName] = { handlers: [handler] };
 
-    const src = createWorketFromSrc(workletName, workletSrc);
+    const src = createWorkletFromSrc(workletName, workletSrc);
     await this.context.audioWorklet.addModule(src);
     const worklet = new AudioWorkletNode(this.context, workletName);
 
@@ -244,16 +244,21 @@ export class AudioStreamer {
   }
 
   complete() {
-    this.isStreamComplete = true;
-    if (this.processingBuffer.length > 0) {
-      this.audioQueue.push(this.processingBuffer);
-      this.processingBuffer = new Float32Array(0);
-      if (this.isPlaying) {
-        this.scheduleNextBuffer();
+    // Add a small delay before marking the stream as complete
+    // This ensures that any final audio fragments get processed
+    setTimeout(() => {
+      this.isStreamComplete = true;
+      if (this.processingBuffer.length > 0) {
+        // Make sure any remaining audio gets played, even if it's not a full buffer
+        this.audioQueue.push(this.processingBuffer);
+        this.processingBuffer = new Float32Array(0);
+        if (this.isPlaying) {
+          this.scheduleNextBuffer();
+        }
+      } else {
+        this.onComplete();
       }
-    } else {
-      this.onComplete();
-    }
+    }, 500); // 500ms delay to ensure all audio is processed
   }
 }
 

@@ -8,7 +8,7 @@ import { AudioStreamer } from '@/lib/audio-streamer';
 import Image from 'next/image'
 import { formatTime } from '@/lib/utils';
 import { Button } from './ui/button';
-import { interviewerSystemPrompt, geminiVoices } from '@/public';
+import { interviewerSystemPrompt, technicalSystemPrompt, behavioralSystemPrompt, geminiVoices } from '@/public';
 import { getInterview } from '@/lib/interview';
 import { toast } from 'sonner';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
@@ -38,6 +38,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSpeakingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clientRef = useRef<MultimodalLiveClient | null>(null);
   const router = useRouter();
 
@@ -223,16 +224,34 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         }
       });
 
+      // Keep track of last audio packet time
+      let lastAudioTime = 0;
+
       clientRef.current.on('audio', (audioData: any) => {        
         if (audioStreamerRef.current) {
           audioStreamerRef.current.addPCM16(new Uint8Array(audioData));
           setisSpeaking(true);
           
-          // When audio stops (pause detected), set isSpeaking to false
-          const dataLength = audioData.byteLength;
-          if (dataLength === 0 || dataLength < 100) { // Small packet might indicate end
-            setTimeout(() => setisSpeaking(false), 500); // Small delay to prevent flickering
+          // Clear any existing timeout
+          if (isSpeakingTimeoutRef.current) {
+            clearTimeout(isSpeakingTimeoutRef.current);
           }
+          
+          // Update last audio packet time
+          lastAudioTime = Date.now();
+          
+          // Create a new timeout to detect end of speech
+          isSpeakingTimeoutRef.current = setTimeout(() => {
+            const timeSinceLastAudio = Date.now() - lastAudioTime;
+            // If it's been more than 700ms since the last audio packet, consider speech ended
+            if (timeSinceLastAudio > 700) {
+              if (audioStreamerRef.current) {
+                // Explicitly call complete to process any remaining audio
+                audioStreamerRef.current.complete();
+              }
+              setisSpeaking(false);
+            }
+          }, 700);
         }
       });
 
@@ -254,6 +273,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
         clientRef.current.disconnect();
       }
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (isSpeakingTimeoutRef.current) clearTimeout(isSpeakingTimeoutRef.current);
     };
   }, [interviewId]);
 
@@ -269,7 +289,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
     if(time % 300 == 0){
       const minutesLeft = time/60;
-      sendSystemMessage("There are " + minutesLeft + " minutes left.");
+      sendSystemMessage( minutesLeft + " minutes left.");
       console.log(minutesLeft + " minutes left");
     }
 
@@ -280,13 +300,17 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const handleConnect = async () => {
     try {
       const interviewDetailsSystemPrompt = `\n\n Interview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview question: ${interviewQuestions}`;
-
+      const systemPrompt =
+        (isBehavioral
+          ? behavioralSystemPrompt
+          : technicalSystemPrompt
+        ) + interviewDetailsSystemPrompt;
       const random = Math.floor(Math.random() * 5);
 
       await clientRef.current?.connect({
         model: "models/gemini-2.0-flash-exp",
         systemInstruction: {
-          parts: [{ text: interviewerSystemPrompt + interviewDetailsSystemPrompt }],
+          parts: [{ text: systemPrompt }],
         },
         tools: [
           {
@@ -469,14 +493,20 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
             </div>
           </div>
           
-          {/* Large empty box in the middle */}
+          {/* Question and editor box in the middle */}
           <div className="border rounded-lg flex-grow flex flex-row items-center justify-center overflow-hidden">
             {connected
             ?
               <>
-                <div id="question-box" className="flex h-full w-[650px] border-r px-4 py-3">
-                  <div className="text-base overflow-scroll" dangerouslySetInnerHTML={{ __html: interviewQuestions[0] }} />
+                <div
+                    className="max-w-lg h-full px-4 py-3 border-r overflow-y-scroll"
+                >
+                  <div
+                    className="text-base whitespace-normal break-words"
+                    dangerouslySetInnerHTML={{ __html: interviewQuestions[0] }}
+                  />
                 </div>
+
                 <div className="w-full h-full">
                   <CodeEditor 
                     onRun={(output, code) => updateCodeOutput(output, code)}

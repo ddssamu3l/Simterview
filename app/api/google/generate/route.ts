@@ -26,8 +26,57 @@ export async function generateCustomInterview(type: string, role: string, length
           Mid: Harder Med
           Senior: Hard
         SOLE PURPOSE: Write the problem description and 2-3 input+output examples in VALID HTML code. OUTPUT: HTML ONLY. NO extra text, explanations, etc. Use <pre><code> tags for multi-line code. NO behavioral Qs.
-        HTML FORMAT EXAMPLE:
-        <p><strong>Problem Description:</strong></p> <p>Given an <code>m x n</code> 2D binary grid <code>grid</code> which represents a map of <code>'1'</code>s (land) and <code>'0'</code>s (water), return the number of islands.</p> <p>An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically. You may assume all four edges of the grid are all surrounded by water.</p> <p><strong>Constraints:</strong></p> <ul> <li><code>m == grid.length</code></li> <li><code>n == grid[i].length</code></li> <li><code>1 <= m, n <= 300</code></li> <li><code>grid[i][j]</code> is <code>'0'</code> or <code>'1'</code>.</li> </ul> <p><strong>Example 1:</strong></p> <pre><code> Input: grid = [ ["1","1","1","1","0"], ["1","1","0","1","0"], ["1","1","0","0","0"], ["0","0","0","0","0"] ] Output: 1 </code></pre> <p><strong>Explanation:</strong> There is one island (i.e., one group of connected 1s).</p> <p><strong>Example 2:</strong></p> <pre><code> Input: grid = [ ["1","1","0","0","0"], ["1","1","0","0","0"], ["0","0","1","0","0"], ["0","0","0","1","1"] ] Output: 3 </code></pre> <p><strong>Explanation:</strong> There are three islands.</p>
+        HTML FORMAT EXAMPLE (FOLLOW STRUCTURE AND STYLING DON'T COPY CONTENT):
+          <p><strong>Problem Description:</strong></p>
+          <p>
+            Given an <code>m x n</code> 2D binary grid <code>grid</code> which represents a map of
+            <code>'1'</code>s (land) and <code>'0'</code>s (water), return the number of islands.
+          </p>
+          <p>
+            An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.
+            You may assume all four edges of the grid are all surrounded by water.
+          </p>
+
+          <p><strong>Input:</strong></p>
+          <ul>
+            <li><code>char[][] grid</code> – The map of the island</li>
+          </ul>
+
+          <p><strong>Output:</strong></p>
+          <ul>
+            <li><code>int numOfIslands</code> – The number of islands</li>
+          </ul>
+
+          <p><strong>Example 1:</strong></p>
+          <pre><code>Input: grid = [
+            ["1","1","1","1","0"],
+            ["1","1","0","1","0"],
+            ["1","1","0","0","0"],
+            ["0","0","0","0","0"]
+          ]
+          Output: 1</code></pre>
+          <p><strong>Explanation:</strong><br/>
+          There is one island (i.e., one group of connected 1s).</p>
+
+          <p><strong>Example 2:</strong></p>
+          <pre><code>Input: grid = [
+            ["1","1","0","0","0"],
+            ["1","1","0","0","0"],
+            ["0","0","1","0","0"],
+            ["0","0","0","1","1"]
+          ]
+          Output: 3</code></pre>
+          <p><strong>Explanation:</strong><br/>
+          There are three islands.</p>
+
+          <p><strong>Constraints:</strong></p>
+          <ul>
+            <li><code>m == grid.length</code></li>
+            <li><code>n == grid[i].length</code></li>
+            <li><code>1 <= m, n <= 300</code></li>
+            <li><code>grid[i][j]</code> is <code>'0'</code> or <code>'1'</code>.</li>
+          </ul>
+
       ADD description: STRING, 15 words MAX. #Brief interview summary
     `;
 

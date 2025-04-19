@@ -3,9 +3,9 @@
 
 import { audioContext } from "./utils";
 import AudioRecordingWorklet from "./worklets/audio-processing";
-import VolMeterWorket from "./worklets/vol-meter";
+import VolMeterWorklet from "./worklets/vol-meter";
 
-import { createWorketFromSrc } from "./audioworklet-registry";
+import { createWorkletFromSrc } from "./audioworklet-registry";
 import EventEmitter from "eventemitter3";
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -42,8 +42,8 @@ export class AudioRecorder extends EventEmitter {
       this.audioContext = await audioContext({ sampleRate: this.sampleRate });
       this.source = this.audioContext.createMediaStreamSource(this.stream);
 
-      const workletName = "audio-recorder-worklet";
-      const src = createWorketFromSrc(workletName, AudioRecordingWorklet);
+      const workletName = "audio-processing-worklet-vad";
+      const src = createWorkletFromSrc(workletName, AudioRecordingWorklet);
 
       await this.audioContext.audioWorklet.addModule(src);
       this.recordingWorklet = new AudioWorkletNode(
@@ -52,8 +52,8 @@ export class AudioRecorder extends EventEmitter {
         {
           processorOptions: {
             sampleRate: this.audioContext.sampleRate,
-            silenceDurationSec: 1.2,
-            maxBufferDuration: 5,
+            silenceDurationSec: 1,
+            maxBufferDuration: 15,
           }
         }
       );
@@ -69,17 +69,24 @@ export class AudioRecorder extends EventEmitter {
       };
       this.source.connect(this.recordingWorklet);
 
-      // vu meter worklet
-      const vuWorkletName = "vu-meter";
-      await this.audioContext.audioWorklet.addModule(
-        createWorketFromSrc(vuWorkletName, VolMeterWorket),
-      );
-      this.vuWorklet = new AudioWorkletNode(this.audioContext, vuWorkletName);
-      this.vuWorklet.port.onmessage = (ev: MessageEvent) => {
-        this.emit("volume", ev.data.volume);
-      };
-
-      this.source.connect(this.vuWorklet);
+      try {
+        // vu meter worklet
+        const vuWorkletName = "vu-meter";
+        await this.audioContext.audioWorklet.addModule(
+          createWorkletFromSrc(vuWorkletName, VolMeterWorklet)
+        );
+        this.vuWorklet = new AudioWorkletNode(this.audioContext, vuWorkletName);
+        
+        this.vuWorklet.port.onmessage = (ev: MessageEvent) => {
+          this.emit("volume", ev.data.volume);
+        };
+        this.source.connect(this.vuWorklet);
+      } catch (error) {
+        console.error("Error initializing vu-meter worklet:", error);
+        // Continue even if the VU meter fails
+        this.vuWorklet = undefined;
+      }
+      // VU meter setup is done in the try block above
       this.recording = true;
       resolve();
       this.starting = null;

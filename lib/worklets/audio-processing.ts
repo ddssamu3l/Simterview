@@ -93,11 +93,15 @@ class AudioProcessingWorklet extends AudioWorkletProcessor {
     }
     // You could also accept ENERGY_THRESHOLD, SILENCE_DURATION_SEC, MAX_BUFFER_DURATION_SEC
     // via options for configuration from the main thread.
-    if(options.silenceDurationSec){
-      SILENCE_DURATION_SEC = options.silenceDurationSec;
+    if(options && options.processorOptions && options.processorOptions.silenceDurationSec){
+      this.SILENCE_DURATION_SEC = options.processorOptions.silenceDurationSec;
+      // Recalculate after changing the variable
+      this.silenceThresholdFrames = this.SILENCE_DURATION_SEC * this.sampleRate;
     }
-    if(options.maxBufferDuration){
-      MAX_BUFFER_DURATION = options.maxBufferDuration;
+    if(options && options.processorOptions && options.processorOptions.maxBufferDuration){
+      this.MAX_BUFFER_DURATION_SEC = options.processorOptions.maxBufferDuration;
+      // Recalculate after changing the variable
+      this.maxBufferFrames = this.MAX_BUFFER_DURATION_SEC * this.sampleRate;
     }
   }
 
@@ -176,7 +180,6 @@ class AudioProcessingWorklet extends AudioWorkletProcessor {
   }
 }
 
-// Make sure the registration name is unique if you have multiple versions
 registerProcessor('audio-processing-worklet-vad', AudioProcessingWorklet);
 `;
 
