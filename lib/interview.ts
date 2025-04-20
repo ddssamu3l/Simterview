@@ -157,24 +157,22 @@ export async function getPublicInterviews(userId: string): Promise<InterviewResp
       };
     });
 
-    // 4. enrich each interview if there's feedback
-    const result = interviews.map(iv => {
+    // 3. enrich each interview if there's feedback
+    const enriched = interviews.map(iv => {
       const fb = feedbackMap[iv.id];
-      if (!fb) {
-        return iv;
-      }
-      return {
-        ...iv,
-        passed: fb.passed,
-        createdAt: fb.createdAt, // overwrite with when user gave feedback
-      };
+      return fb
+        ? { ...iv, passed: fb.passed, createdAt: fb.createdAt }
+        : iv;
     });
 
-    console.log("Result" + result);
+    // 4. sort by createdAt ascending (earliest first)
+    enriched.sort((a, b) =>
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
 
     return {
       success: true,
-      data: result,
+      data: enriched,
       status: 200,
     };
   } catch (err) {
