@@ -21,7 +21,7 @@ export async function generateCustomInterview(type: string, role: string, length
 
       IF TYPE="technical":
         FIND 1 LeetCode (NOT well-known, trivial, or Blind 75). DIFF based on role:
-          Beginner: Easy
+          Trivial: Easy
           Intern/New Grad/Junior: Med
           Mid: Harder Med
           Senior: Hard

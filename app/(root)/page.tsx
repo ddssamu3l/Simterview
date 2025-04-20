@@ -9,16 +9,21 @@ const Page = () => {
     <div className="flex flex-col items-center">
       {/* Hero Section */}
       <section className="card-cta w-full max-w-6xl px-4 py-16 sm:py-24">
-        <div className="flex flex-col gap-8 w-full items-center text-center">
+        <div className="flex flex-col gap-8 w-full items-center text-center sm:px-16">
           <h1 className="font-bold tracking-tight">
             Become FAANG-Ready With AI Mock Software Engineering Interviews
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl">
             Test your technical & behavioral skills against live AI recruiters & get instant quality feedback!
           </p>
-          <Button asChild className="btn-primary w-full max-w-lg text-black">
-            <Link href="/custom-interview">Generate your AI interview</Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Button asChild className="btn-primary w-[250px] max-w-lg text-black">
+              <Link href="/custom-interview">Generate your AI interview</Link>
+            </Button>
+            <Button asChild className="btn-primary w-[250px] max-w-lg text-black">
+              <Link href="/interview-list">See Pre-Generated Interviews</Link>
+            </Button>
+          </div>
         </div>
       </section>
 

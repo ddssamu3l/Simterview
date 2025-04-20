@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useMemo, useRef, useState } from 'react';
+'use client';
+
+import { useState, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { runCode as executeCode } from '@/app/api/jdoodle/post/route';
 import debounce from 'lodash/debounce';
+import { runCode as executeCode } from '@/app/api/jdoodle/post/route';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -15,39 +17,37 @@ export default function CodeRunner({ onRun, onCodeChange }: CodeEditorProps) {
   const [language, setLanguage] = useState<'python' | 'java' | 'cpp'>('python');
   const [code, setCode] = useState<string>({
     python: `print("Hello, Python!")`,
-    java: `public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}`,
-    cpp: `#include <iostream>\nint main() {\n  std::cout << \"Hello, C++!\" << std::endl;\n  return 0;\n}`
+    java: `public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello, Java!");\n  }\n}`,
+    cpp: `#include <iostream>\nint main() {\n  std::cout << "Hello, C++!" << std::endl;\n  return 0;\n}`
   }[language]);
   const [output, setOutput] = useState<string>('');
 
-  // Keep a ref to the latest onCodeChange prop
+  // Run-button cooldown
+  const [runDisabled, setRunDisabled] = useState(false);
+  const [runError, setRunError] = useState('');
+
+  // Keep ref to latest onCodeChange callback
   const onCodeChangeRef = useRef(onCodeChange);
   useEffect(() => {
     onCodeChangeRef.current = onCodeChange;
   }, [onCodeChange]);
 
-  // Create debounce only once
+  // Debounced code-change emitter
   const debouncedCodeChange = useMemo(
     () =>
       debounce((newCode: string) => {
         onCodeChangeRef.current?.(newCode);
-      }, 2000),
+      }, 1000),
     []
   );
-
-  // Clean up debounce on unmount
-  useEffect(() => {
-    return () => {
-      debouncedCodeChange.cancel();
-    };
-  }, [debouncedCodeChange]);
+  useEffect(() => () => debouncedCodeChange.cancel(), [debouncedCodeChange]);
 
   const handleLangChange = (lang: typeof language) => {
     setLanguage(lang);
     setCode({
       python: `print("Hello, Python!")`,
-      java: `public class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello, Java!\");\n  }\n}`,
-      cpp: `#include <iostream>\nint main() {\n  std::cout << \"Hello, C++!\" << std::endl;\n  return 0;\n}`
+      java: `public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello, Java!");\n  }\n}`,
+      cpp: `#include <iostream>\nint main() {\n  std::cout << "Hello, C++!" << std::endl;\n  return 0;\n}`
     }[lang]);
     setOutput('');
   };
@@ -58,8 +58,22 @@ export default function CodeRunner({ onRun, onCodeChange }: CodeEditorProps) {
   };
 
   const handleRun = async () => {
-    // Flush any pending debounce before running
+    if (runDisabled) {
+      setRunError('You have attempted to run code too soon. Please try again in a few seconds.');
+      return;
+    }
+
+    // disable further runs for 3s
+    setRunDisabled(true);
+    setRunError('');
+    setTimeout(() => {
+      setRunDisabled(false);
+      setRunError('');
+    }, 4000);
+
+    // flush pending debounce so onCodeChange gets called before run
     debouncedCodeChange.flush();
+
     setOutput('Running…');
     try {
       const { stdout, stderr } = await executeCode({ language, code });
@@ -67,8 +81,8 @@ export default function CodeRunner({ onRun, onCodeChange }: CodeEditorProps) {
       setOutput(combined);
       onRun?.(combined, code);
     } catch (err) {
-      setOutput('Error running code.');
       console.error(err);
+      setOutput('Error running code.');
     }
   };
 
@@ -86,17 +100,26 @@ export default function CodeRunner({ onRun, onCodeChange }: CodeEditorProps) {
         </select>
         <button
           onClick={handleRun}
-          className="px-3 py-1 bg-primary-100 text-black rounded"
+          disabled={runDisabled}
+          className={`px-3 py-1 rounded ${runDisabled
+              ? 'bg-gray-600 cursor-not-allowed text-gray-300'
+              : 'bg-primary-100 text-black'
+            }`}
         >
           Run
         </button>
       </div>
+
+      {runError && (
+        <div className="p-2 text-sm text-red-400">{runError}</div>
+      )}
+
       <div className="flex-1 overflow-hidden">
         <MonacoEditor
           height="calc(100% - 60px)"
           language={language === 'cpp' ? 'cpp' : language}
           value={code}
-          onChange={code => handleCodeChange(code || '')}
+          onChange={val => handleCodeChange(val || '')}
           theme="vs-dark"
           options={{
             minimap: { enabled: false },
@@ -104,8 +127,9 @@ export default function CodeRunner({ onRun, onCodeChange }: CodeEditorProps) {
             automaticLayout: true
           }}
         />
+
         <div className="h-[60px] px-2 py-1 bg-dark-400 border-t text-sm overflow-x-hidden text-white">
-          {output ? output : 'Output...'}
+          {output || 'Output...'}
         </div>
       </div>
     </div>

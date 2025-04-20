@@ -8,7 +8,7 @@ import { AudioStreamer } from '@/lib/audio-streamer';
 import Image from 'next/image'
 import { formatTime } from '@/lib/utils';
 import { Button } from './ui/button';
-import { interviewerSystemPrompt, technicalSystemPrompt, behavioralSystemPrompt, geminiVoices } from '@/public';
+import { technicalSystemPrompt, behavioralSystemPrompt, geminiVoices } from '@/public';
 import { getInterview } from '@/lib/interview';
 import { toast } from 'sonner';
 import { FunctionDeclaration, SchemaType } from '@google/generative-ai';
@@ -91,7 +91,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       async function getInterviewDetails(){
         try{
           const interviewDetails = await getInterview(interviewId);
-          if(interviewDetails.data && interviewDetails.data.createdBy === userId){
+          if(interviewDetails.data && (interviewDetails.data.createdBy === userId || interviewDetails.data.createdBy === "Simterview")){
             setInterviewDifficulty(interviewDetails.data.difficulty);
             setInterviewType(interviewDetails.data.type);
             setInterviewLength(interviewDetails.data.length);
@@ -117,9 +117,7 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
 
       clientRef.current.on('close', (event) => {
         console.log("WebSocket connection closed", event);
-        setConnected(false);
-        // Reset messages
-        setMessages([]);
+        handleDisconnect();
       });
 
       const lastAssistantMessage = { current: '' };
