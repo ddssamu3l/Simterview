@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { createClient, SpeakRestClient } from '@deepgram/sdk'
 import { getDeepGramResponse } from '@/app/api/deepgram/post/route';
 import CodeEditor from './CodeEditor';
+import { initializeFeedback } from '@/lib/feedback';
 
 function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   const [connected, setConnected] = useState<boolean>(false);
@@ -329,7 +330,9 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
       });
 
       setConnected(true);
-      sendSystemMessage("The candidate has joined. Please greet the candidate!");      
+      sendSystemMessage("The candidate has joined. Please greet the candidate!");  
+      
+      await initializeFeedback(userId, interviewId);
     } catch (error) {
       console.error('Connection error:', error);
     }
