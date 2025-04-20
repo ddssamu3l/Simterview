@@ -16,9 +16,14 @@ const Page = () => {
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl">
             Test your technical & behavioral skills against live AI recruiters & get instant quality feedback!
           </p>
-          <Button asChild className="btn-primary w-full max-w-lg text-black">
-            <Link href="/custom-interview">Generate your AI interview</Link>
-          </Button>
+          <div className="flex flex-row justify-center gap-4">
+            <Button asChild className="btn-primary w-[250px] max-w-lg text-black">
+              <Link href="/custom-interview">Generate your AI interview</Link>
+            </Button>
+            <Button asChild className="btn-primary w-[250px] max-w-lg text-black">
+              <Link href="/interview-list">See Pre-Generated Interviews</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
