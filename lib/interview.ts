@@ -102,3 +102,87 @@ export async function getUserInterviewFeedbacks(userId: string): Promise<Intervi
     };
   }
 }
+
+/**
+ * Retrieves all public interviews created by "Simterview" and, if available,
+ * enriches them with the user's feedback data (e.g., pass/fail status and 
+ * feedback submission time). This function is used to show users which public
+ * interviews they've attempted and their corresponding results.
+ *
+ * Public interviews are identified by the "createdBy" field set to "Simterview".
+ * If the user has submitted feedback for a public interview, the corresponding 
+ * interview object will be updated with the "passed" status and the "createdAt" 
+ * timestamp from the feedback (replacing the original interview's createdAt).
+ *
+ * @param {string} userId - The ID of the user whose feedback history should be matched against public interviews.
+ * @returns {Promise<InterviewResponse>} An object containing the enriched list of public interviews,
+ *                                       or an error message if the operation fails.
+ */
+export async function getPublicInterviews(userId: string): Promise<InterviewResponse> {
+  try {
+    // 1. fetch all public interviews
+    const interviewsSnap = await db
+      .collection("interviews")
+      .where("createdBy", "==", "Simterview")
+      .get();
+
+    if (interviewsSnap.empty) {
+      return { success: true, data: [], status: 200 };
+    }
+
+    const interviews: Interview[] = interviewsSnap.docs.map(doc => ({
+      ...(doc.data() as Omit<Interview, "id" | "passed">),
+      id: doc.id,
+      passed: undefined,       // placeholder
+    }));
+
+    // 2. fetch all feedbacks for this user
+    const feedbacksSnap = await db
+      .collection("feedbacks")
+      .where("userId", "==", userId)
+      .get();
+
+    if (feedbacksSnap.empty) {
+      // none of the public interviews have been attempted by this user
+      return { success: true, data: interviews, status: 200 };
+    }
+
+    // 3. build map from interviewId → feedback
+    const feedbackMap: Record<string, Feedback> = {};
+    feedbacksSnap.docs.forEach(doc => {
+      const fb = doc.data() as Feedback;
+      feedbackMap[fb.interviewId] = {
+        ...fb,
+        id: doc.id,
+      };
+    });
+
+    // 4. enrich each interview if there's feedback
+    const result = interviews.map(iv => {
+      const fb = feedbackMap[iv.id];
+      if (!fb) {
+        return iv;
+      }
+      return {
+        ...iv,
+        passed: fb.passed,
+        createdAt: fb.createdAt, // overwrite with when user gave feedback
+      };
+    });
+
+    console.log("Result" + result);
+
+    return {
+      success: true,
+      data: result,
+      status: 200,
+    };
+  } catch (err) {
+    console.error(`Error in getPublicInterviews for user ${userId}:`, err);
+    return {
+      success: false,
+      status: 500,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}

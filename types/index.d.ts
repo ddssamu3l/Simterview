@@ -1,4 +1,5 @@
 interface Feedback {
+  id?: string
   interviewId: string;
   userId: string;
   passed: boolean;
@@ -17,7 +18,7 @@ interface FeedbackForm {
   finalAssessment: string;
 }
 
-type InterviewDifficulty = 'Beginner' | 'Intern' | 'Junior/New Grad' | "Mid Level" | "Senior";
+type InterviewDifficulty = 'Trivial' | 'Intern' | 'Junior/New Grad' | "Mid Level" | "Senior";
 type InterviewType = 'behavioral' | 'technical' | 'mixed'
 
 interface Interview {
@@ -29,6 +30,7 @@ interface Interview {
   questions: string[];
   createdAt: string;
   type: InterviewType;
+  passed?: boolean;
 }
 
 interface CreateFeedbackParams {
@@ -123,6 +125,13 @@ interface Message {
 interface CombinedResult extends Interview {
   id: string; // This will be the feedback's id
   passed: boolean;
+}
+
+interface InterviewResponse{
+  success: boolean;
+  data?: Interview[];
+  status: number;
+  error?: string;
 }
 
 interface InterviewFeedbackResponse {

@@ -23,10 +23,13 @@ const NavBar = ({ username, userId }: { username: string, userId: string }) => {
 
           <div className="flex items-center gap-6">
             <Link href="/custom-interview" className="text-slate-300" >
-              Generate Interview
+              Custom Interview
             </Link>
             <Link href="/interview-list" className="text-slate-300">
               Interview List
+            </Link>
+            <Link href="mailto:rainsongsoftware@gmail.com" className="text-slate-300">
+              Support
             </Link>
             {(username !== "")
               ? (

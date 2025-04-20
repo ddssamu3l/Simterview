@@ -61,13 +61,13 @@ class AudioProcessingWorklet extends AudioWorkletProcessor {
 
   // --- ADJUSTABLE PARAMETERS ---
   // VAD threshold (adjust based on mic sensitivity and background noise)
-  ENERGY_THRESHOLD = 0.005; // Example: -46dB approx if max is 1.0
+  ENERGY_THRESHOLD = 0.01; // Example: -46dB approx if max is 1.0
   // Silence duration in seconds (ADJUST THIS VALUE)
   SILENCE_DURATION_SEC = 1.0; // Example: 1 second of silence threshold
   // Minimum speech duration in seconds (optional, prevents sending very short noise bursts)
   MIN_SPEECH_DURATION_SEC = 0.1; // Example: 100ms
   // Maximum buffer duration in seconds before sending anyway (prevents huge buffers)
-  MAX_BUFFER_DURATION_SEC = 5.0; // Example: Send chunk every 5 seconds max, even if still speaking
+  MAX_BUFFER_DURATION_SEC = 3.0; // Example: Send chunk every 5 seconds max, even if still speaking
 
   // Internal state
   accumulatedBuffer = []; // Use a dynamic array initially

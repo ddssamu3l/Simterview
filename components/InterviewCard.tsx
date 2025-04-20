@@ -8,7 +8,7 @@ import { cn, formatISODate } from '@/lib/utils';
 const InterviewCard = ({ id, name, length, difficulty, description, createdAt, questions, type, passed }: InterviewCardProps) => {
   return (
     <div className="card-border hover:bg-dark-300 w-[360px] max-sm:w-full min-h-64 cursor-pointer transition-colors duration-200">
-      <Link href={`/feedback/${id}`}>
+      <Link href={passed!==undefined? `/feedback/${id}` : `/live-interview/${id}`}>
         <div className="card-interview border-b py-4 px-4">
           <div className="flex">
             <div className="relative flex justify-between w-full">
@@ -32,7 +32,7 @@ const InterviewCard = ({ id, name, length, difficulty, description, createdAt, q
         </div>
         <div className="interview-title border-b py-4 px-4 flex flex-col items-center relative">
           <h2 className="text-center text-lg font-semibold text-slate-200">{name}</h2>
-          {(passed != null) && (
+          {(passed !== undefined) && (
             <p className="text-xs absolute bottom-2 right-3 text-slate-400">
               Feedback on: {formatISODate(createdAt)}
             </p>
