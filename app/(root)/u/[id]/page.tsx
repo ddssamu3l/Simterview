@@ -34,7 +34,7 @@ export default function Page() {
   return (
     <section className="container mx-auto px-4 py-8">
       <div className="flex flex-col items-center mb-12">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-100 mb-3">Your Past Interviews</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center text-slate-100 mb-3">Your Past Interviews</h1>
         <p className="text-slate-300 max-w-xl text-center">Review your previous interview sessions and analyze your performance</p>
       </div>
 
