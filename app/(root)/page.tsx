@@ -85,7 +85,7 @@ const Page = () => {
           <h2 className="text-2xl sm:text-3xl font-bold mb-6">Ready to ace your next interview?</h2>
           <p className="text-slate-300 mb-8">Join thousands of developers who&apos;ve improved their interview skills with Simterview</p>
           <Button asChild className="btn-primary text-black">
-            <Link href="/custom-interview">Start practicing now</Link>
+            <Link href="/interview-list">Start practicing now</Link>
           </Button>
         </div>
       </section>
