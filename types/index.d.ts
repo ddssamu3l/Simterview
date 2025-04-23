@@ -44,6 +44,7 @@ interface User {
   name: string;
   email: string;
   id: string;
+  simcoin?: number;
 }
 
 interface InterviewCardProps {
