@@ -6,7 +6,7 @@ const RootLayout = async ({children}: {children: ReactNode}) => {
   const currentUser = await getCurrentUser();
   const username = currentUser? currentUser.name : ""
   const userId = currentUser? currentUser.id : ""
-  const coinCount = currentUser?.simcoin? currentUser.simcoin : 0
+  const coinCount = currentUser? currentUser.coinCount : 0
   return (
     <div className="root-layout">
       <NavBar username={username} userId={userId} coinCount={coinCount}/>

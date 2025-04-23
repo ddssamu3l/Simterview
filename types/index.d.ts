@@ -44,7 +44,8 @@ interface User {
   name: string;
   email: string;
   id: string;
-  simcoin?: number;
+  coinCount: number;
+  createdAt: string;
 }
 
 interface InterviewCardProps {
@@ -72,6 +73,7 @@ interface AgentProps {
   username: string;
   userId: string;
   interviewId: string;
+  coinCount: number;
   feedbackId?: string;
   questions?: string[];
 }
@@ -147,4 +149,10 @@ interface FeedbackResponse {
   data?: Feedback;
   status: number;
   error?: string;
+}
+
+interface deductCoinProps{
+  userId: string;
+  coinCount: number;
+  coinCost: number;
 }

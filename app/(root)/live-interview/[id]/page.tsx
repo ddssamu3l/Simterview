@@ -12,7 +12,7 @@ const Page = async ({ params }: PageProps) => {
   const { id } = await params;
   const user = await getCurrentUser();
 
-  return <ClientLiveInterview id={id} username={user?.name || "You"} userId={user!.id} />;
+  return <ClientLiveInterview id={id} username={user?.name || "You"} userId={user!.id} coinCount={user!.coinCount} />;
 };
 
 export default Page;

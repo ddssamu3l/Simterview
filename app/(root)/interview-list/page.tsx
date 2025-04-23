@@ -40,6 +40,7 @@ export default function Page() {
       <div className="flex flex-col items-center mb-12">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-100 mb-3">Interview List</h1>
         <p className="text-slate-300 max-w-xl text-center">Pick from a list of pre-generated interviews to get targeted practice.</p>
+        <p className="flex flex-row gap-1 text-slate-300 max-w-xl text-center items-center">1 minute = 1x <Image src="/coin.png" alt="coin cost" width={18} height={18}/> (deducted post-interview)</p>
       </div>
 
       {!isLoading ? (

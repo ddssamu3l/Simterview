@@ -12,15 +12,17 @@ const GeminiVoiceChat = dynamic(
 function ClientLiveInterview({ 
   id, 
   username, 
-  userId 
+  userId,
+  coinCount
 }: { 
   id: string;
   username: string;
   userId: string;
+  coinCount: number;
 }) {
   return (
     <div className="h-[600px] sm:h-[880px] w-full flex items-center justify-center mt-[-48]">
-      <GeminiVoiceChat username={username} userId={userId} interviewId={id} />
+      <GeminiVoiceChat username={username} userId={userId} interviewId={id} coinCount={coinCount} />
     </div>
   );
 }

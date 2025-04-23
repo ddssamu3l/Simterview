@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "load-interviews": "node scripts/loadTrivialInterviews.ts"
+    "load-interviews": "node scripts/loadTrivialInterviews.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.5",
@@ -56,6 +57,7 @@
     "eslint-config-next": "15.2.4",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^1.6.1"
   }
 }

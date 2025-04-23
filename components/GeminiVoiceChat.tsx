@@ -20,8 +20,9 @@ import { createClient, SpeakRestClient } from '@deepgram/sdk'
 import { getDeepGramResponse } from '@/app/api/deepgram/post/route';
 import CodeEditor from './CodeEditor';
 import { initializeFeedback } from '@/lib/feedback';
+import { deductCoins } from '@/app/api/user/post/route';
 
-function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
+function GeminiVoiceChat({ username, userId, interviewId, coinCount}: AgentProps) {
   const [connected, setConnected] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
@@ -214,6 +215,12 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
                 areasForImprovement,
                 finalAssessment,
               });
+
+              await deductCoins({
+                userId,
+                coinCount,
+                coinCost: interviewLength,
+              })
             }catch(error){
               console.error("Error: " + error);
             }
@@ -298,6 +305,10 @@ function GeminiVoiceChat({ username, userId, interviewId }: AgentProps) {
   // Connect to the API
   const handleConnect = async () => {
     try {
+      if(coinCount < interviewLength){
+        toast.error(`Error: Insufficient coins. You need ${interviewLength} coins to conduct this interview.`);
+        return;
+      }
       const interviewDetailsSystemPrompt = `\n\n Interview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview question: ${interviewQuestions}`;
       const systemPrompt =
         (isBehavioral
