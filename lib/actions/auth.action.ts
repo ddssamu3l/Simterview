@@ -21,7 +21,8 @@ export async function handleGitHubAuth(idToken: string) {
         email: userRecord.email,
         name: userRecord.displayName || userRecord.email,
         createdAt: new Date().toISOString(),
-        authProvider: 'github'
+        authProvider: 'github',
+        simcoin: 200,
       });
     }
 
@@ -59,7 +60,8 @@ export async function signUp(params: SignUpParams){
       name, 
       email,
       createdAt: new Date().toISOString(),
-      authProvider: 'email'
+      authProvider: 'email',
+      simcoin: 200,
     })
 
     return{
