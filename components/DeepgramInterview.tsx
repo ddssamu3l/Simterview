@@ -635,61 +635,11 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
   // Start over the interview
   const handleDisconnect = () => {
-    console.log("Disconnecting...");
+    console.log("Disconnecting and reloading page...");
     
-    // Clear all scheduled audio playback sources
-    scheduledAudioSources.current.forEach(source => {
-      if (source) {
-        try {
-          source.stop();
-          source.disconnect();
-        } catch (err) {
-          console.error("Error stopping audio source:", err);
-        }
-      }
-    });
-    scheduledAudioSources.current = [];
-    
-    // Stop audio contexts if they exist
-    if (audioContext.current) {
-      try {
-        if (audioContext.current.state !== 'closed') {
-          audioContext.current.suspend();
-        }
-      } catch (err) {
-        console.error("Error suspending audio context:", err);
-      }
-    }
-    
-    // Stop the microphone completely
-    if (stopMicrophone) {
-      stopMicrophone();
-    }
-    
-    // Disconnect from Deepgram websocket
-    if (disconnectFromDeepgram) {
-      disconnectFromDeepgram();
-    }
-    
-    // Reset state
-    setIsDisconnected(true);
-    setIsInitialized(false);
-    setTime(interviewLength * 60);
-    
-    // We need to check if microphone is still permitted after disconnection
-    // This will re-initialize the microphone after a short delay
-    setTimeout(() => {
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(() => {
-          setMicPermissionDenied(false);
-          setupMicrophone();
-        })
-        .catch(err => {
-          if (err.name === 'NotAllowedError') {
-            setMicPermissionDenied(true);
-          }
-        });
-    }, 500);
+    // The most reliable way to ensure all resources are properly released
+    // and the microphone is usable again is to simply reload the page
+    window.location.reload();
   };
 
   // Toggle microphone (mute/unmute)
