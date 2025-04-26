@@ -21,6 +21,7 @@ import { sendSocketMessage, sendMicToSocket } from "@/utils/deepgramUtils";
 import { useStsQueryParams } from "@/hooks/UseStsQueryParams";
 import { stsConfig } from "@/lib/deepgramConstants";
 import CodeEditor from './CodeEditor';
+import { behavioralSystemPrompt, technicalSystemPrompt } from "@/public";
 
 interface DeepgramInterviewProps {
   username: string;
@@ -79,6 +80,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const [isBehavioral, setIsBehavioral] = useState(false);
   const [interviewLength, setInterviewLength] = useState(0);
   const [interviewQuestions, setInterviewQuestions] = useState([""]);
+  const [interviewSolution, setInterviewSolution] = useState("");
   const [lastCodeOutput, setLastCodeOutput] = useState<string>('');
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
 
@@ -116,12 +118,13 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           setInterviewType(interviewDetails.data.type);
           setInterviewLength(interviewDetails.data.length);
           setInterviewQuestions(interviewDetails.data.questions);
+          if (interviewDetails.data.solution) { setInterviewSolution(interviewDetails.data.solution); console.log("Solution guide: " + interviewDetails.data.solution);}
           setInterviewReady(true);
 
           setTime(interviewDetails.data.length * 60);
           setIsBehavioral(interviewDetails.data.type === "behavioral");
         } else {
-          throw new Error();
+          throw new Error("Error: interview data missing or belongs to another user.");
         }
       } catch (error) {
         console.log("Error fetching interview details: " + error);
@@ -218,7 +221,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
         // Create custom system prompt based on interview details
-        const interviewDetailsSystemPrompt = `\n\nInterview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview question: ${interviewQuestions}`;
+        const interviewDetailsSystemPrompt = `\n\nInterview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview questions:\n ${interviewQuestions} \n${interviewSolution === "" ? "" : "Interview question solution guide:\n" + interviewSolution}`;
         
         // Modify the default STS config to include interview details
         const interviewStsConfig = {
@@ -227,7 +230,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
             ...stsConfig.agent,
             think: {
               ...stsConfig.agent.think,
-              instructions: stsConfig.agent.think.instructions + interviewDetailsSystemPrompt
+              instructions: (isBehavioral? behavioralSystemPrompt + interviewDetailsSystemPrompt : technicalSystemPrompt + interviewDetailsSystemPrompt),
             }
           }
         };
@@ -635,10 +638,49 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
   // Start over the interview
   const handleDisconnect = () => {
-    console.log("Disconnecting and reloading page...");
+    console.log("Disconnecting and starting over...");
     
-    // The most reliable way to ensure all resources are properly released
-    // and the microphone is usable again is to simply reload the page
+    // Set UI state first to prevent any race conditions
+    setIsDisconnected(true);
+    setIsInitialized(false);
+    setTime(interviewLength * 60);
+    
+    // Clear all scheduled audio playback sources
+    scheduledAudioSources.current.forEach(source => {
+      if (source) {
+        try {
+          source.stop();
+          source.disconnect();
+        } catch (err) {
+          console.error("Error stopping audio source:", err);
+        }
+      }
+    });
+    scheduledAudioSources.current = [];
+    
+    // Stop audio contexts if they exist
+    if (audioContext.current) {
+      try {
+        if (audioContext.current.state !== 'closed') {
+          audioContext.current.suspend();
+        }
+      } catch (err) {
+        console.error("Error suspending audio context:", err);
+      }
+    }
+    
+    // Stop the microphone completely
+    if (stopMicrophone) {
+      stopMicrophone();
+    }
+    
+    // Disconnect from Deepgram websocket
+    if (disconnectFromDeepgram) {
+      disconnectFromDeepgram();
+    }
+    
+    // Reload the page to ensure a completely fresh start
+    // This is the most reliable way to reset browser audio state
     window.location.reload();
   };
 

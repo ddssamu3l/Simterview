@@ -58,7 +58,7 @@ const CustomInterviewForm = () => {
       await initializeFeedback(uid, id);
 
       toast.success("Interview generated successfully!");
-      router.push(`/live-interview/${id}`);
+      router.push(`/live-deepgram-interview/${id}`);
     }catch(error){
       if (error instanceof Error && error.message !== "NEXT_REDIRECT"){
         console.error("Error generating custom interview: " + error);

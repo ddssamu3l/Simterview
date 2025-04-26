@@ -1,7 +1,32 @@
 "use server"
 import { db } from "@/firebase/admin"
 import { FieldPath } from "firebase-admin/firestore";
-
+/**
+ * Fetches an interview record by ID, returning its core fields.
+ *
+ * Retrieves the document from the `interviews` collection, and if found,
+ * returns an object containing:
+ *  - difficulty: string
+ *  - length: number (minutes)
+ *  - questions: string[] (HTML strings)
+ *  - type: string (“technical” or “behavioral”)
+ *  - createdBy: string (UID of the author)
+ *  - solution?: string (optional field; only included if present on the doc)
+ *
+ * @param {string} interviewId  Firestore document ID of the interview
+ * @returns {Promise<{
+ *   success: boolean;
+ *   status: number;
+ *   data?: {
+ *     difficulty: string;
+ *     length: number;
+ *     questions: string[];
+ *     type: string;
+ *     createdBy: string;
+ *     solution?: string;
+ *   };
+ * }>}
+ */
 export async function getInterview(interviewId: string) {
   try {
     const interviewSnapshot = await db.collection('interviews').doc(interviewId).get();
@@ -11,18 +36,23 @@ export async function getInterview(interviewId: string) {
     }
     console.log(interviewSnapshot.data());
 
-    const { difficulty, length, questions, type, createdBy } = interviewSnapshot.data() as {
+    const { difficulty, length, questions, solution, type, createdBy } = interviewSnapshot.data() as {
       difficulty: string;
       length: number,
       questions: string[];
+      solution?: string;
       type: string;
       createdBy: string;
     };
+    
+    if (solution !== undefined) {
+      return { success: true, status: 200, data: { difficulty, length, questions, solution, type, createdBy } };
+    }
 
     return { success: true, status: 200, data: { difficulty, length, questions, type, createdBy } };
   } catch (error) {
-    console.error("Error fetching interview details: " + error);
-    return { success: false, status: 500 }
+    console.error("Error fetching interview details:", error);
+    return { success: false, status: 500 };
   }
 }
 
