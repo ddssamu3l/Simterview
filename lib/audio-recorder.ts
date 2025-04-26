@@ -52,7 +52,7 @@ export class AudioRecorder extends EventEmitter {
         {
           processorOptions: {
             sampleRate: this.audioContext.sampleRate,
-            silenceDurationSec: 1.4,
+            silenceDurationSec: 1,
             maxBufferDuration: 1.5,
           }
         }

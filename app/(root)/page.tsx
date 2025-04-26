@@ -14,7 +14,7 @@ const Page = () => {
             Become FAANG-Ready With AI Mock Software Engineering Interviews
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl">
-            Test your technical & behavioral skills against live AI recruiters & get instant quality feedback!
+            Test your technical & behavioral skills against live AI recruiters!
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button asChild className="btn-primary w-[250px] max-w-lg text-black">

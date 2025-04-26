@@ -1,10 +1,10 @@
 import { getUserInterviewFeedbacks } from '@/lib/interview';
-import { Link } from 'lucide-react';
 import React, { useEffect, useState } from 'react'
 import { toast } from 'sonner';
 import InterviewCard from './InterviewCard';
 import { Button } from './ui/button';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const FeedbackList = ({userId}: {userId: string}) => {
   const [interviews, setInterviews] = useState<Interview[] | undefined>([]);
@@ -26,44 +26,46 @@ const FeedbackList = ({userId}: {userId: string}) => {
   }, [userId]);
 
   return (
-    <>
-      <div className="flex flex-col items-center mb-12">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center text-slate-100 mb-3">Your Past Interviews</h1>
-        <p className="text-slate-300 max-w-xl text-center">Review your previous interview sessions and analyze your performance</p>
-      </div>
+    <div className="w-full mt-8">
+      <div className="border rounded-lg p-8">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-8">Past Interviews Feedbacks</h2>
 
-      {!isLoading ? (
-        interviews && interviews.length > 0 ? (
-          <div className="flex flex-wrap justify-center gap-4">
-            {interviews.map((interview) => (
-              <InterviewCard key={interview.id} {...interview} />
-            ))}
-          </div>
+        {!isLoading ? (
+          interviews && interviews.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {interviews.map((interview) => (
+                <InterviewCard key={interview.id} {...interview} />
+              ))}
+            </div>
+          ) : (
+            <div className="border rounded-md p-8 flex flex-col items-center">
+              <Image
+                src="/confused.png"
+                alt="No interviews"
+                width={100}
+                height={100}
+                className="mb-6 opacity-60"
+                unoptimized
+              />
+              <h3 className="text-xl font-medium mb-2">No interviews yet</h3>
+              <p className="mb-6 max-w-md text-center text-slate-400">
+                Complete your first interview to see your performance analysis here
+              </p>
+              <Button asChild className="btn-primary text-black">
+                <Link href="/custom-interview">Start an interview</Link>
+              </Button>
+            </div>
+          )
         ) : (
-          <div className="flex flex-col items-center py-16 border rounded-md ">
-            <Image
-              src="/confused.png"
-              alt="No interviews"
-              width={120}
-              height={120}
-              className="mb-6 opacity-60"
-            />
-            <h3 className="text-xl font-medium mb-2">No interviews yet</h3>
-            <p className="mb-6 max-w-md text-center">Complete your first interview to see your performance analysis here</p>
-            <Button asChild className="btn-primary text-black">
-              <Link href="/custom-interview">Start an interview</Link>
-            </Button>
+          <div className="border rounded-md p-8 flex flex-col items-center">
+            <div className="relative w-12 h-12 mb-4">
+              <div className="absolute top-0 w-full h-full border-4 border-slate-600 border-t-slate-300 rounded-full animate-spin"></div>
+            </div>
+            <p className="text-slate-400">Loading your interviews...</p>
           </div>
-        )
-      ) : (
-        <div className="flex flex-col items-center py-12">
-          <div className="relative w-16 h-16 mb-4">
-            <div className="absolute top-0 w-full h-full border-4 border-slate-600 border-t-slate-300 rounded-full animate-spin"></div>
-          </div>
-          <p className="text-slate-300">Loading your interviews...</p>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </div>
   )
 }
 

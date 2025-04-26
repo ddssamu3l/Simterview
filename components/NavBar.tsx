@@ -32,6 +32,9 @@ const NavBar = ({ username, userId, coinCount }: { username: string, userId: str
               <Link href="mailto:rainsongsoftware@gmail.com" className="text-slate-300 px-4">
                 Support
               </Link>
+              <Link href="/deepgram-chat" className="text-slate-300 px-4">
+                Deepgram
+              </Link>
             </div>
 
             {(username !== "")
