@@ -80,6 +80,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const [interviewLength, setInterviewLength] = useState(0);
   const [interviewQuestions, setInterviewQuestions] = useState([""]);
   const [lastCodeOutput, setLastCodeOutput] = useState<string>('');
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
 
   // Refs
   const audioContext = useRef<AudioContext | null>(null);
@@ -157,10 +158,36 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   // Initialize microphone once on mount
   useEffect(() => {
     if (microphoneState === null) {
-      setupMicrophone();
+      setupMicrophone().catch(error => {
+        console.error('Microphone setup failed:', error);
+        if (error.name === 'NotAllowedError') {
+          setMicPermissionDenied(true);
+        }
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  // Update mic permission state when microphone state changes
+  useEffect(() => {
+    if (microphoneState === 1) {
+      // Microphone is ready, so permission is granted
+      setMicPermissionDenied(false);
+    } else if (microphoneState === null) {
+      // Check if permissions are already granted but not yet set up
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => {
+          // Permissions already granted, but microphone not yet initialized
+          setMicPermissionDenied(false);
+          // Don't initialize here as that will happen in setupMicrophone
+        })
+        .catch(err => {
+          if (err.name === 'NotAllowedError') {
+            setMicPermissionDenied(true);
+          }
+        });
+    }
+  }, [microphoneState]);
 
   // Wake lock for preventing device sleep
   useEffect(() => {
@@ -536,11 +563,44 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     }
   };
 
+  // Request microphone permissions
+  const requestMicrophonePermission = async () => {
+    try {
+      // This will trigger the browser's permission dialog
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // If we got here, permission was granted
+      setMicPermissionDenied(false);
+      
+      // Only call setupMicrophone if it's not already initialized
+      if (microphoneState === null || microphoneState === 0) {
+        await setupMicrophone();
+      }
+      
+      toast.success('Microphone access granted!');
+    } catch (error) {
+      console.error('Failed to get microphone permission:', error);
+      setMicPermissionDenied(true);
+      
+      if (error.name === 'NotAllowedError') {
+        toast.error('Microphone access denied. Please allow microphone access in your browser settings.');
+      } else {
+        toast.error('Could not access microphone. Please check your device settings.');
+      }
+    }
+  };
+
   // Initialize the interview
   const handleConnect = async () => {
     try {
       if (coinCount < interviewLength) {
         toast.error(`Error: Insufficient coins. You need ${interviewLength} coins to conduct this interview.`);
+        return;
+      }
+      
+      if (!microphone) {
+        toast.error('Microphone access is required for the interview. Please grant permission.');
+        requestMicrophonePermission();
         return;
       }
       
@@ -616,8 +676,20 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     setIsInitialized(false);
     setTime(interviewLength * 60);
     
-    // We don't want to immediately reconnect so we set isDisconnected
-    // User will need to click "Start Interview" again
+    // We need to check if microphone is still permitted after disconnection
+    // This will re-initialize the microphone after a short delay
+    setTimeout(() => {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => {
+          setMicPermissionDenied(false);
+          setupMicrophone();
+        })
+        .catch(err => {
+          if (err.name === 'NotAllowedError') {
+            setMicPermissionDenied(true);
+          }
+        });
+    }, 500);
   };
 
   // Toggle microphone (mute/unmute)
@@ -704,13 +776,28 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
             
           <div className="w-full flex max-sm:flex-col max-sm items-center justify-center gap-6 mb-4 font-bold rounded-sm">
             {!isInitialized ? (
-              <Button
-                disabled={!interviewReady}
-                onClick={handleConnect}
-                className="w-[150px] bg-white text-black font-bold px-4 py-2 hover:cursor-pointer"
-              >
-                Start Interview
-              </Button>
+              <>
+                <Button
+                  disabled={!interviewReady || !microphone}
+                  onClick={handleConnect}
+                  className="w-[150px] bg-white text-black font-bold px-4 py-2 hover:cursor-pointer"
+                >
+                  Start Interview
+                </Button>
+                {micPermissionDenied && (
+                  <Button
+                    onClick={requestMicrophonePermission}
+                    className="w-[200px] bg-blue-500 text-white font-semibold hover:cursor-pointer"
+                  >
+                    Grant Microphone Access
+                  </Button>
+                )}
+                {(!microphone || micPermissionDenied) && (
+                  <div className="text-red-500 text-sm font-normal ml-2 flex items-center">
+                    Microphone access is required
+                  </div>
+                )}
+              </>
             ) : (
               <>
                 <Button
@@ -785,15 +872,30 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           
           {/* Controls at the bottom */}
           <div className="py-4">
-            <div className="w-full flex items-center justify-center gap-6 font-bold">
+            <div className="w-full flex flex-wrap items-center justify-center gap-6 font-bold">
               {!isInitialized ? (
-                <Button
-                  disabled={!interviewReady}
-                  onClick={handleConnect}
-                  className="w-[150px] bg-white text-black font-bold px-4 py-2 hover:cursor-pointer"
-                >
-                  Start Interview
-                </Button>
+                <>
+                  <Button
+                    disabled={!interviewReady || !microphone}
+                    onClick={handleConnect}
+                    className="w-[150px] bg-white text-black font-bold px-4 py-2 hover:cursor-pointer"
+                  >
+                    Start Interview
+                  </Button>
+                  {micPermissionDenied && (
+                    <Button
+                      onClick={requestMicrophonePermission}
+                      className="w-[200px] bg-blue-500 text-white font-semibold hover:cursor-pointer"
+                    >
+                      Grant Microphone Access
+                    </Button>
+                  )}
+                  {(!microphone || micPermissionDenied) && (
+                    <div className="text-red-500 text-sm font-normal w-full text-center mt-2">
+                      Microphone access is required
+                    </div>
+                  )}
+                </>
               ) : (
                 <>
                   <Button
