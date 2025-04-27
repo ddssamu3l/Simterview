@@ -142,7 +142,6 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       toolResponse: await handleSaveInterviewFeedback(input),
     }),
   };
-  
 
   // Initialize the audio context
   useEffect(() => {
@@ -701,6 +700,135 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     };
   }, [isInitialized, isDisconnected]);
   
+  // Clean up resources and navigate
+  const cleanupAndNavigate = useCallback((destinationUrl: string) => {
+    try {
+      // Deduct coins and clean up
+      const minutesLeft = Math.floor(time/60);
+      const coinCost = Math.max(0, interviewLength - minutesLeft);
+      console.log(`Leaving interview... Deducting ${coinCost} coins`);
+      
+      // Make synchronous XHR request to deduct coins
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/user/post', false); // synchronous
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({ userId, coinCount, coinCost }));
+      
+      // Manually clean up resources (without the page reload)
+      // Clear all timers
+      if (userInactivityTimer.current) {
+        clearInterval(userInactivityTimer.current);
+        userInactivityTimer.current = null;
+      }
+      
+      if (keepAliveTimer.current) {
+        clearInterval(keepAliveTimer.current);
+        keepAliveTimer.current = null;
+      }
+      
+      // Stop the microphone completely
+      if (stopMicrophone) {
+        stopMicrophone();
+      }
+      
+      // Disconnect from Deepgram websocket
+      if (disconnectFromDeepgram) {
+        disconnectFromDeepgram();
+      }
+      
+      // Clear all scheduled audio playback sources
+      scheduledAudioSources.current.forEach(source => {
+        if (source) {
+          try {
+            source.stop();
+            source.disconnect();
+          } catch (err) {
+            // Ignore errors during cleanup
+          }
+        }
+      });
+      
+      // Suspend audio context if possible
+      if (audioContext.current && audioContext.current.state !== 'closed') {
+        try {
+          audioContext.current.suspend();
+        } catch (err) {
+          // Ignore errors during cleanup
+        }
+      }
+      
+      // Then navigate
+      window.location.href = destinationUrl;
+    } catch (error) {
+      console.error("Error during navigation cleanup:", error);
+      // Continue with navigation even if there's an error
+      window.location.href = destinationUrl;
+    }
+  }, [time, interviewLength, userId, coinCount, stopMicrophone, disconnectFromDeepgram]);
+  
+  // Add click listeners to all navigation elements (links and buttons)
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    // Function to handle navigation (both links and the Quit button)
+    const handleNavigation = (e: MouseEvent) => {
+      // Check if clicked element is a link in navbar or the quit button
+      const target = e.target as HTMLElement;
+      const link = target.closest('a');
+      const quitButton = target.closest('button');
+      
+      // Handle if it's a navigation link
+      if (link && link.closest('nav')) {
+        // Prevent the default navigation
+        e.preventDefault();
+        
+        // Get the destination
+        const destinationUrl = link.getAttribute('href') || '/';
+        
+        // Skip confirmation if going to profile page via standard navbar (match quit button behavior)
+        if (destinationUrl.includes(`/u/${userId}`)) {
+          cleanupAndNavigate(destinationUrl);
+          return;
+        }
+        
+        // For other nav destinations, show a confirmation
+        const confirmed = window.confirm("You're in the middle of an interview. Are you sure you want to leave?");
+        if (confirmed) {
+          cleanupAndNavigate(destinationUrl);
+        }
+      }
+      
+      // If it's the Quit button, we'll let its normal click handler run
+      // but we're capturing the event to ensure our cleanup happens before any navigation
+      if (quitButton && quitButton.textContent?.includes('Quit Interview')) {
+        // For the Quit button, we should handle cleanup before the button's click handler
+        // This ensures cleanup happens before navigation
+        e.preventDefault();
+        
+        cleanupAndNavigate(`/u/${userId}`);
+      }
+    };
+    
+    // Add click listener to the document to catch all navigations
+    document.addEventListener('click', handleNavigation, true);
+    
+    // Also keep the beforeunload handler for refresh/close
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "You're in the middle of an interview. Are you sure you want to leave?";
+      
+      // Don't try to call handleQuit here - it won't complete before the page unloads
+      return e.returnValue;
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      document.removeEventListener('click', handleNavigation, true);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isInitialized, time, interviewLength, userId, coinCount]);
+  
   // Start a keep-alive timer to maintain agent audio capabilities
   useEffect(() => {
     if (!isInitialized || isDisconnected || !socket || socketState !== 1) return;
@@ -847,20 +975,10 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     }
   };
 
-  // Quit interview and navigate back to user profile
-  const handleQuit = async () => {
-    try {
-      await handleDisconnect(false);
-      console.log("Quitting interview...");
-      window.location.href = `/u/${userId}`;
-
-      const minutesLeft = Math.floor(time/60);
-      const coinCost = interviewLength - minutesLeft;
-      await deductCoins({userId, coinCount, coinCost});
-    } catch (error) {
-      console.log("Error: " + error);
-      toast.error("Error quitting interview");
-    }
+  // Quit interview by using our cleanup and navigation function
+  const handleQuit = () => {
+    // Use the same cleanup function that's used by the click handler
+    cleanupAndNavigate(`/u/${userId}`);
   };
 
   // Handle code editor outputs

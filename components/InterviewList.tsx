@@ -44,7 +44,7 @@ const InterviewList = () => {
           <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
             <div className="flex items-center gap-2">
               <Image src="/coin.png" alt="SimCoin" width={24} height={24} unoptimized />
-              <p className="text-slate-300">1 minute = 1 SimCoin</p>
+              <p className="text-slate-300">1 SimCoin = 1 Minute of speaking time with the AI interviewer.</p>
             </div>
             <p className="text-slate-300 text-sm">(Coins are deducted after completing the interview)</p>
           </div>

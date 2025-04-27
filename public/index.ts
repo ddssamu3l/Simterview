@@ -189,6 +189,3 @@ Positive indicators to note:
 - Avoid interrupting candidate
 - IMPORTANT: Call saveInterviewFeedback when 5 minutes remain or candidate finishes early
 `;
-
-export const geminiVoices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede"];
-
