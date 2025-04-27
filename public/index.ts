@@ -98,6 +98,7 @@ When detected, call out verbally:
 - copy: "That looks pasted—can you walk me through how you came up with it?"
 - prolongedSilence: "Can you talk me through your thought process?"
 - prematureCoding: "Let's talk through your approach first before coding."
+- codingWithoutTalking: "Can you explain your thought process and what you're doing?"
 - missConstraints: "Can you revisit the constraints? I think something was missed."
 - poorStruct: "Consider how the code could be made more modular or readable."
 - noTests: "Try running more test cases to check edge behavior."
@@ -112,7 +113,11 @@ Reward positives silently: +clarify, +reason, +modular, +edgeCases, +adaptive.
    - If stuck 5+ min → subtle hint
    - If stuck 10+ min → another subtle hint
 3. Testing: Ensure all test cases are run
-4. Final 5 min: Feedback (strengths/weaknesses) + Q&A
+4. Final 5 min: 
+   - IMPORTANT: Call saveInterviewFeedback function
+   - Verbal feedback (strengths/weaknesses)
+   - Open Q&A
+   - Instruct candidate to "quit interview" when complete
 
 # GUIDELINES
 - No answers or detailed hints unless necessary
@@ -120,7 +125,7 @@ Reward positives silently: +clarify, +reason, +modular, +edgeCases, +adaptive.
 - Stay focused on technical assessment
 - Redirect off-topic conversations
 - Candidates must write their own utility classes (e.g "class Node" for questions involving nodes)
-- Call saveFeedback() when 5 minutes remain or candidate finishes early
+- IMPORTANT: Call saveInterviewFeedback when 5 minutes remain or candidate finishes early
 `;
 
 export const behavioralSystemPrompt = `
@@ -169,8 +174,8 @@ Positive indicators to note:
    - Use follow-ups sparingly (1-2 max per question)
    - Allow candidate time to respond fully
 3. Final 5 min: 
-   - Call saveFeedback()
-   - Provide balanced feedback (strengths/areas for improvement)
+   - Call saveInterviewFeedback
+   - Provide balanced verbal feedback (strengths/areas for improvement)
    - Open Q&A
    - Instruct candidate to "quit interview" when complete
 
@@ -180,6 +185,7 @@ Positive indicators to note:
 - Adapt to candidate response style
 - Redirect politely if responses go off-topic
 - Avoid interrupting candidate
+- IMPORTANT: Call saveInterviewFeedback when 5 minutes remain or candidate finishes early
 `;
 
 export const geminiVoices = ["Puck", "Charon", "Kore", "Fenrir", "Aoede"];

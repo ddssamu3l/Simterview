@@ -94,6 +94,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const isSpeakingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const previousVoiceRef = useRef<string | null>(null);
   const previousInstructionsRef = useRef<string | null>(null);
+  const lastUserSpeakingTime = useRef<number>(Date.now());
+  const userInactivityTimer = useRef<NodeJS.Timeout | null>(null);
+  const keepAliveTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Function calling logic (tools)
   interface SaveInterviewFeedbackInput {
@@ -282,9 +285,16 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
         };
         
         const combinedStsConfig = applyParamsToConfig(interviewStsConfig);
+        
+        // Send the configuration first
         sendSocketMessage(socket, combinedStsConfig);
-        startMicrophone();
-        startListening(true);
+        
+        // Wait for configuration to be received before starting the microphone
+        setTimeout(() => {
+          console.log("Starting microphone after configuration sent");
+          startMicrophone();
+          startListening(true);
+        }, 1000); // 1 second delay to ensure settings are processed
       };
 
       // Add event listener for WebSocket open event
@@ -302,21 +312,30 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [microphoneState, socket, isDisconnected, manuallyDisconnected]);
 
-  // Connect processor to send audio data to Deepgram
+  // Track configuration acknowledgment
+  const [settingsApplied, setSettingsApplied] = useState(false);
+
+  // Connect processor to send audio data to Deepgram only after settings are applied
   useEffect(() => {
     if (!microphone) return;
     if (!socket) return;
     if (!processor) return;
     if (microphoneState !== 2) return;
     if (socketState !== 1) return;
-    processor.onaudioprocess = sendMicToSocket(socket);
-  }, [microphone, socket, microphoneState, socketState, processor]);
+    
+    // Only connect the processor if settings have been applied or after a safety timeout
+    if (settingsApplied) {
+      console.log("Connecting audio processor after settings were applied");
+      processor.onaudioprocess = sendMicToSocket(socket);
+    }
+  }, [microphone, socket, microphoneState, socketState, processor, settingsApplied]);
 
   // Handle sleep state - disable audio processing when sleeping
   useEffect(() => {
     if (!processor || socket?.readyState !== 1) return;
     if (status === VoiceBotStatus.SLEEPING) {
       processor.onaudioprocess = null;
+      toast.message("Agent has slept");
     } else {
       processor.onaudioprocess = sendMicToSocket(socket);
     }
@@ -333,6 +352,10 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   }, [microphoneAudioContext, microphone]);
 
   // Connect to Deepgram when microphone is ready
+  // Explicitly handle initialization sequence
+  // 1. First connect to Deepgram
+  // 2. Wait for socket to open and send config
+  // 3. Only after settings are applied, start the microphone
   useEffect(() => {
     if (
       !isDisconnected && 
@@ -342,6 +365,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       isInitialized &&
       interviewReady
     ) {
+      // This connects the socket, but microphone is started in the socket.onopen handler
       connectToDeepgram();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -400,8 +424,17 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const onMessage = useCallback(
     async (event) => {
       if (event.data instanceof ArrayBuffer) {
-        if (status !== VoiceBotStatus.SLEEPING && !isWaitingForUserVoiceAfterSleep.current) {
+        // Process audio data from the agent with less restrictive conditions
+        // Remove the isWaitingForUserVoiceAfterSleep check since it's preventing audio after sleep
+        if (settingsApplied) {
+          // Allow audio output even when waiting for user voice after sleep
           bufferAudio(event.data); // Process the ArrayBuffer data to play the audio
+          
+          // If we're processing audio, we should also ensure we're not in waiting state
+          if (isWaitingForUserVoiceAfterSleep.current) {
+            console.log("Audio received from agent - resetting wait state");
+            isWaitingForUserVoiceAfterSleep.current = false;
+          }
         }
       } else {
         console.log(event?.data);
@@ -409,7 +442,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
         setData(event.data);
       }
     },
-    [bufferAudio, status, isWaitingForUserVoiceAfterSleep]
+    [bufferAudio, settingsApplied, isWaitingForUserVoiceAfterSleep]
   );
 
   // Add listener for WebSocket messages
@@ -420,27 +453,45 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     }
   }, [socket, onMessage]);
 
-  // Handle updates to voice model
+  // Handle updates to voice model - only after settings have been applied
   useEffect(() => {
-    if (previousVoiceRef.current && previousVoiceRef.current !== voice && socket && socketState === 1) {
+    if (previousVoiceRef.current && previousVoiceRef.current !== voice && socket && socketState === 1 && settingsApplied) {
       sendSocketMessage(socket, {
         type: "UpdateSpeak",
         model: voice,
       });
     }
     previousVoiceRef.current = voice;
-  }, [voice, socket, socketState]);
-
-  // Handle updates to instructions
+  }, [voice, socket, socketState, settingsApplied]);
+  
+  // Special handler for when agent wakes from sleep
   useEffect(() => {
-    if (previousInstructionsRef.current !== instructions && socket && socketState === 1) {
+    if (status === VoiceBotStatus.LISTENING && socket && socketState === 1 && processor) {
+      // If we've just transitioned back to listening state (e.g., after sleep)
+      if (audioContext.current && audioContext.current.state !== 'running') {
+        audioContext.current.resume().catch(err => {
+          console.error("Failed to resume audio context after wake:", err);
+        });
+      }
+      
+      // Ensure the audio processor is connected
+      if (!processor.onaudioprocess) {
+        console.log("Reconnecting audio processor after state change");
+        processor.onaudioprocess = sendMicToSocket(socket);
+      }
+    }
+  }, [status, socket, socketState, processor]);
+
+  // Handle updates to instructions - only after settings have been applied
+  useEffect(() => {
+    if (previousInstructionsRef.current !== instructions && socket && socketState === 1 && settingsApplied) {
       sendSocketMessage(socket, {
         type: "UpdateInstructions",
         instructions: `${stsConfig.agent.think.instructions}\n${instructions}`,
       });
     }
     previousInstructionsRef.current = instructions;
-  }, [instructions, socket, socketState, stsConfig.agent.think.instructions]);
+  }, [instructions, socket, socketState, stsConfig.agent.think.instructions, settingsApplied]);
 
   // Process incoming data from WebSocket
   useEffect(() => {
@@ -460,10 +511,16 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
        * When the assistant/agent says something, add it to the conversation queue.
        */
       const assistantRole = (data) => {
-        if (status !== VoiceBotStatus.SLEEPING && !isWaitingForUserVoiceAfterSleep.current) {
-          startSpeaking();
-          const assistantTranscript = data.content;
-          addVoicebotMessage({ assistant: assistantTranscript });
+        // Always allow agent response to be processed regardless of sleep state
+        // This ensures the agent's responses are always added to the queue and spoken
+        startSpeaking();
+        const assistantTranscript = data.content;
+        addVoicebotMessage({ assistant: assistantTranscript });
+        
+        // Ensure we're not in waiting state when the agent is responding
+        if (isWaitingForUserVoiceAfterSleep.current) {
+          console.log("Assistant speaking - resetting wait state");
+          isWaitingForUserVoiceAfterSleep.current = false;
         }
       };
 
@@ -479,20 +536,21 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
         maybeRecordBehindTheScenesEvent(parsedData);
 
+        // Check for settings applied message to enable audio processing
+        if (parsedData.type === EventType.SETTINGS_APPLIED) {
+          console.log("Settings applied successfully by Deepgram");
+          setSettingsApplied(true);
+        }
+
         /**
          * If it's a user message.
          */
         if (parsedData.role === "user") {
+          // Update the last time the user spoke
+          lastUserSpeakingTime.current = Date.now();
+          
           startListening();
           userRole(parsedData);
-
-          // Check for interview feedback request
-          if (
-            parsedData.content.toLowerCase().includes("feedback") && 
-            parsedData.content.toLowerCase().includes("interview")
-          ) {
-            processFeedbackRequest();
-          }
         }
 
         /**
@@ -512,6 +570,10 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           startListening();
         }
         if (parsedData.type === EventType.USER_STARTED_SPEAKING) {
+          // Update the last time the user spoke
+          lastUserSpeakingTime.current = Date.now();
+          console.log("User speaking detected, resetting inactivity timer");
+          
           isWaitingForUserVoiceAfterSleep.current = false;
           startListening();
           clearAudioBuffer();
@@ -546,48 +608,6 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, status]);
-
-  // Process feedback request
-  const processFeedbackRequest = async () => {
-    try {
-      // Generate feedback at the end of interview - similar to storeFeedback in GeminiVoiceChat
-      sendSystemMessage("Please provide comprehensive feedback on the candidate's performance in this interview. Include strengths, areas for improvement, and a final assessment. Also indicate whether the candidate passed or failed the interview.");
-      
-      // We'll simulate the function call instead of using Gemini's function calling
-      // The real implementation would extract this data from the agent's response
-      // But for prototype purposes, we'll create a simple placeholder
-      
-      // After getting all feedback, save it
-      setTimeout(async () => {
-        try {
-          const dummyFeedback = {
-            passed: true,  // This would be determined by the agent 
-            strengths: "Strong communication skills and technical knowledge",
-            areasForImprovement: "Could improve problem-solving approach",
-            finalAssessment: "The candidate demonstrated good understanding of core concepts. They communicated clearly and were able to solve the problem with minimal assistance.",
-          };
-          
-          await saveInterviewFeedback({
-            interviewId,
-            userId,
-            ...dummyFeedback
-          });
-          
-          await deductCoins({
-            userId,
-            coinCount,
-            coinCost: interviewLength,
-          });
-          
-          sendSystemMessage("The feedback has been saved. An internal record of the candidate's performance for this interview is saved.");
-        } catch (error) {
-          console.error("Error saving feedback:", error);
-        }
-      }, 5000);
-    } catch (error) {
-      console.error("Error processing feedback request:", error);
-    }
-  };
 
   // Handle behind the scenes events
   const maybeRecordBehindTheScenesEvent = (serverMsg) => {
@@ -657,6 +677,50 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     }
   };
 
+  // User inactivity tracking - check if user has been silent for too long
+  useEffect(() => {
+    if (!isInitialized || isDisconnected) return;
+    
+    // Setup inactivity timer that checks every 30 seconds
+    userInactivityTimer.current = setInterval(() => {
+      const currentTime = Date.now();
+      const elapsedMinutes = (currentTime - lastUserSpeakingTime.current) / (1000 * 60);
+      
+      // If user hasn't spoken for 5 minutes
+      if (elapsedMinutes >= 5) {
+        console.log("User inactive for 5 minutes, disconnecting...");
+        toast.info("No activity detected for 5 minutes. Restarting interview...");
+        handleDisconnect();
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return () => {
+      if (userInactivityTimer.current) {
+        clearInterval(userInactivityTimer.current);
+      }
+    };
+  }, [isInitialized, isDisconnected]);
+  
+  // Start a keep-alive timer to maintain agent audio capabilities
+  useEffect(() => {
+    if (!isInitialized || isDisconnected || !socket || socketState !== 1) return;
+    
+    // Send a keep-alive message every 30 seconds to prevent audio capability loss
+    keepAliveTimer.current = setInterval(() => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        console.log("Sending keep-alive to maintain agent audio connection");
+        sendSocketMessage(socket, { type: "KeepAlive" });
+      }
+    }, 28000); // Every 30 seconds
+    
+    return () => {
+      if (keepAliveTimer.current) {
+        clearInterval(keepAliveTimer.current);
+        keepAliveTimer.current = null;
+      }
+    };
+  }, [isInitialized, isDisconnected, socket, socketState]);
+  
   // Initialize the interview
   const handleConnect = async () => {
     try {
@@ -675,6 +739,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       if (audioContext.current && audioContext.current.state === 'suspended') {
         await audioContext.current.resume();
       }
+      
+      // Reset user speaking time tracking
+      lastUserSpeakingTime.current = Date.now();
       
       setIsInitialized(true);
       await initializeFeedback(userId, interviewId);
@@ -703,6 +770,17 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   // Start over the interview
   const handleDisconnect = () => {
     console.log("Disconnecting and starting over...");
+    
+    // Clear all timers
+    if (userInactivityTimer.current) {
+      clearInterval(userInactivityTimer.current);
+      userInactivityTimer.current = null;
+    }
+    
+    if (keepAliveTimer.current) {
+      clearInterval(keepAliveTimer.current);
+      keepAliveTimer.current = null;
+    }
     
     // Set UI state first to prevent any race conditions
     setIsDisconnected(true);
@@ -751,9 +829,21 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   // Toggle microphone (mute/unmute)
   const toggleMicrophone = () => {
     if (processor && processor.onaudioprocess) {
+      // Muting microphone
       processor.onaudioprocess = null;
     } else if (processor && socket) {
+      // Unmuting microphone
       processor.onaudioprocess = sendMicToSocket(socket);
+      
+      // When re-enabling the microphone, ensure we're not in sleep mode
+      // and ensure we're not waiting for user voice
+      if (status === VoiceBotStatus.SLEEPING) {
+        startListening(true); // Force start listening mode
+      }
+      
+      // Reset the waiting state to ensure audio works
+      isWaitingForUserVoiceAfterSleep.current = false;
+      console.log("Microphone enabled - resetting speech recognition state");
     }
   };
 

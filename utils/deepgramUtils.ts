@@ -107,9 +107,9 @@ export interface StsConfig {
 export interface LlmFunction {
   name: string;
   description: string;
-  url: string;
-  method: string;
-  headers: Header[];
+  url?: string;
+  method?: string;
+  headers?: Header[];
   key?: string;
   parameters: LlmParameterObject | Record<string, never>;
 }

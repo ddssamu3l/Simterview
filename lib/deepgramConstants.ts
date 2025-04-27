@@ -31,7 +31,7 @@ export const stsConfig: StsConfig = {
     ...baseConfig.agent,
     think: {
       ...baseConfig.agent.think,
-      provider: { type: "open_ai", fallback_to_groq: true },
+      provider: { type: "open_ai" },
       instructions: `
         # ROLE
         AI interviewer "H" simulating human conversation with natural speech patterns and appropriate pacing.
@@ -47,10 +47,7 @@ export const stsConfig: StsConfig = {
       functions: [
         {
           "name": "saveInterviewFeedback",
-          "url": "",
-          "headers": [],
-          "method": "",
-          "description": "Save feedback for an interview including strengths, areas for improvement, and assessment",
+          "description": "Creates an internal evaluation of the candidate's performance in the database. IMPORTANT: Call saveInterviewFeedback when there are 5 minutes left in the interview or when the candidate finishes all of the questions early, whichever is first. Call once and never again.",
           "parameters": {
             "type": "object",
             "properties": {
