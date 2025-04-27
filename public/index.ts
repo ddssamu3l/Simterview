@@ -47,29 +47,11 @@ TYPE="technical":
       <li>[constraint 2]</li>
     </ul>
 
+  SOLUTION_GUIDE_FORMAT:
+    INTUITION: [2-3 sentences on the most optimal approach ONLY. NO EXAMPLE IMPLEMENTATIONS OR MULTIPLE APPROACHES OR PSUDO CODE]
+
 ADD description: STRING, 15 words MAX. #Brief interview summary
 `;
-
-/**
- * SOLUTION_GUIDE_FORMAT:
-    APPROACH 1 - (BRUTE FORCE)
-      INTUITION: [1-2 sentences explaining basic approach]
-      ALGORITHM: [2-3 sentences on implementation]
-      IMPLEMENTATION: [psudo-code block]
-      COMPLEXITY: Time O([complexity]) - [explanation]. Space O([complexity]) - [explanation].
-
-    APPROACH 2 - (OPTIMIZED)
-      INTUITION: [1-2 sentences on improved approach]
-      ALGORITHM: [2-3 sentences on implementation]
-      IMPLEMENTATION: [psudo-code block]
-      COMPLEXITY: Time O([complexity]) - [explanation]. Space O([complexity]) - [explanation].
-
-    APPROACH 3 - (OPTIMAL) [if applicable]
-      INTUITION: [1-2 sentences on optimal approach]
-      ALGORITHM: [2-3 sentences on implementation]
-      IMPLEMENTATION: [psudo-code block]
-      COMPLEXITY: Time O([complexity]) - [explanation]. Space O([complexity]) - [explanation].
- */
 
 export const technicalSystemPrompt = `
 # ROLE
