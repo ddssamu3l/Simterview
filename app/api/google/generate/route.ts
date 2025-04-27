@@ -50,9 +50,6 @@ export async function generateCustomInterview(type: string, role: string, length
           required: requiredFields,
         },
         temperature: 0.8,
-        thinkingConfig: {
-          thinkingBudget: 0,
-        },
       },
     });
 
