@@ -95,6 +95,52 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const previousVoiceRef = useRef<string | null>(null);
   const previousInstructionsRef = useRef<string | null>(null);
 
+  // Function calling logic (tools)
+  interface SaveInterviewFeedbackInput {
+    passed: number;
+    strengths: string;
+    areasForImprovement: string;
+    finalAssessment: string;
+  }
+
+  // Function signature for mapping tool calls
+  type FuncType = (
+    input: SaveInterviewFeedbackInput
+  ) => Promise<{ toolResponse: string }>;
+
+  // Actual save handler, returns a string response
+  async function handleSaveInterviewFeedback(
+    { passed, strengths, areasForImprovement, finalAssessment }: SaveInterviewFeedbackInput
+  ): Promise<string> {
+    try {
+      console.log("Saving interview feedback: " + finalAssessment);
+      // Convert numeric passed to boolean
+      const pass = passed > 0;
+      // Call your Firestore function (expects object)
+      await saveInterviewFeedback({
+        interviewId,
+        userId,
+        passed: pass,
+        strengths,
+        areasForImprovement,
+        finalAssessment,
+      });
+      return 'Feedback saved successfully';
+    } catch (error) {
+      console.error('Error saving interview feedback:', error);
+      toast.error('Error saving interview feedback: ' + error);
+      return 'An error occured while saving feedback. Please try again.';
+    }
+  }
+
+  // Map function names to handlers for AI tool calls
+  const functionsMap: Record<string, FuncType> = {
+    saveInterviewFeedback: async (input) => ({
+      toolResponse: await handleSaveInterviewFeedback(input),
+    }),
+  };
+  
+
   // Initialize the audio context
   useEffect(() => {
     if (!audioContext.current) {
@@ -476,6 +522,24 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           const latencyMessage = { tts_latency, ttt_latency, total_latency };
           addVoicebotMessage(latencyMessage);
         }
+
+        /**
+         * If it's a function call
+         */
+        if(parsedData.type === EventType.FUNCTION_CALL_REQUEST) {
+          // get the parameters from the server message
+          const { function_name, function_call_id, input} = parsedData;
+          // call the function with a functions map, get the result, and send a functionCallResponse message back through the socket
+          async function getToolResponse(){
+            const toolResult = await functionsMap[function_name](input);
+            sendSocketMessage(socket, {
+              "type": "FunctionCallResponse",
+              "function_call_id": function_call_id,
+              "output": toolResult.toolResponse,
+            });
+          }
+          getToolResponse();
+        }
       } catch (error) {
         console.error(data, error);
       }
@@ -622,7 +686,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     }
   };
 
-  // Send a system message
+  // Send a system message TODO find a better way than just updating systems message
   const sendSystemMessage = (text: string) => {
     if (isInitialized && text.trim() && socket && socket.readyState === WebSocket.OPEN) {
       try {

@@ -152,6 +152,7 @@ export type DGMessage =
   | { type: "SettingsConfiguration"; audio: AudioConfig; agent: AgentConfig }
   | { type: "UpdateInstructions"; instructions: string }
   | { type: "UpdateSpeak"; model: string }
+  | { type: "FunctionCallResponse"; function_call_id: string; output: string}
   | { type: "KeepAlive" };
 
 export const withBasePath = (path: string): string => {

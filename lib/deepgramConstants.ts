@@ -44,7 +44,37 @@ export const stsConfig: StsConfig = {
         # GOAL
         Conduct a Software Engineering interview with the candidate.
         `,
-      functions: [],
+      functions: [
+        {
+          "name": "saveInterviewFeedback",
+          "url": "",
+          "headers": [],
+          "method": "",
+          "description": "Save feedback for an interview including strengths, areas for improvement, and assessment",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "passed": {
+                "type": "integer",
+                "description": "Whether the candidate passed the interview. If passed, return 1. If failed, return -1.",
+              },
+              "strengths": {
+                "type": "string",
+                "description": "1-4 List of candidate's strengths (provide concrete examples from interview)"
+              },
+              "areasForImprovement": {
+                "type": "string",
+                "description": "1-4 List of areas where the candidate can improve (provide concrete examples from interview)"
+              },
+              "finalAssessment": {
+                "type": "string",
+                "description": "1 paragraph description of the overall assessment of the candidate's performance. Write it like a report to the hiring manager."
+              }
+            },
+            "required": ["passed", "strengths", "areasForImprovement", "finalAssessment"],
+          }
+        }
+      ],
     },
   },
   context: {

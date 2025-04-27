@@ -12,7 +12,7 @@ const FeedbackCard = ({ interviewId, userId, passed, strengths, areasForImprovem
 
   function retakeInterview(){
     setIsRedirecting(true);
-    router.push(`/live-deepgram-interview/${interviewId}`);
+    router.push(`/live-interview/${interviewId}`);
   }
   return (
     <div className="card-border w-full max-w-2xl mx-auto min-h-196 max-sm:min-h-128 max-h-[90vh] bg-transparent">

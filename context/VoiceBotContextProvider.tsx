@@ -29,6 +29,7 @@ export enum EventType {
   AGENT_STARTED_SPEAKING = "AgentStartedSpeaking",
   CONVERSATION_TEXT = "ConversationText",
   END_OF_THOUGHT = "EndOfThought",
+  FUNCTION_CALL_REQUEST = "FunctionCallRequest",
 }
 
 export type VoiceBotMessage = LatencyMessage | ConversationMessage;

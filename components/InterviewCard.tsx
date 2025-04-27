@@ -8,7 +8,7 @@ import { cn, formatISODate } from '@/lib/utils';
 const InterviewCard = ({ id, name, length, difficulty, description, createdAt, questions, type, passed }: InterviewCardProps) => {
   return (
     <div className="card-border hover:bg-dark-300 max-w-86 max-sm:w-full min-h-64 cursor-pointer transition-colors duration-200">
-      <Link href={passed!==undefined? `/feedback/${id}` : `/live-deepgram-interview/${id}`}>
+      <Link href={passed!==undefined? `/feedback/${id}` : `/live-interview/${id}`}>
         <div className="card-interview border-b py-4 px-4">
           <div className="flex">
             <div className="relative flex justify-between w-full">
