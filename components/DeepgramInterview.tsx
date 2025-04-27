@@ -335,7 +335,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     if (!processor || socket?.readyState !== 1) return;
     if (status === VoiceBotStatus.SLEEPING) {
       processor.onaudioprocess = null;
-      toast.message("Agent has slept");
+      toast.message("Your interviewer fell asleep from your inactivity. Please re-connect your mic!");
     } else {
       processor.onaudioprocess = sendMicToSocket(socket);
     }
@@ -768,7 +768,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   };
 
   // Start over the interview
-  const handleDisconnect = () => {
+  const handleDisconnect = (refresh: boolean=true) => {
     console.log("Disconnecting and starting over...");
     
     // Clear all timers
@@ -823,7 +823,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     
     // Reload the page to ensure a completely fresh start
     // This is the most reliable way to reset browser audio state
-    window.location.reload();
+    if(refresh) window.location.reload();
   };
 
   // Toggle microphone (mute/unmute)
@@ -850,9 +850,13 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   // Quit interview and navigate back to user profile
   const handleQuit = async () => {
     try {
-      handleDisconnect();
+      await handleDisconnect(false);
       console.log("Quitting interview...");
-      router.push(`/u/${userId}`);
+      window.location.href = `/u/${userId}`;
+
+      const minutesLeft = Math.floor(time/60);
+      const coinCost = interviewLength - minutesLeft;
+      await deductCoins({userId, coinCount, coinCost});
     } catch (error) {
       console.log("Error: " + error);
       toast.error("Error quitting interview");
