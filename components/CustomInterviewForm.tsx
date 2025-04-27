@@ -42,6 +42,7 @@ const CustomInterviewForm = () => {
   async function onSubmit({type, role, length, difficulty, jobDescription}: z.infer<typeof interviewFormSchema>) {
     try{
       setIsGenerating(true);
+      toast.message("Generating interview. This will take a few seconds...");
       const user = auth.currentUser;
       if (!user) {
         console.error("No user signed in.");

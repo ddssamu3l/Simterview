@@ -30,17 +30,17 @@ export async function generateCustomInterview(type: string, role: string, length
     const requiredFields = ["description", "questions"];
 
     // Only include solution for non-behavioral (technical) interviews
-    if (type !== "behavioral") {
-      properties.solution = {
-        type: Type.STRING,
-        description: "The solution guide for the chosen LeetCode problem. Required for technical interview.",
-      };
-      requiredFields.push("solution");
-    }
+    // if (type !== "behavioral") {
+    //   properties.solution = {
+    //     type: Type.STRING,
+    //     description: "The solution guide for the chosen LeetCode problem. Required for technical interview.",
+    //   };
+    //   requiredFields.push("solution");
+    // }
 
     // Generate content
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-04-17",
+      model: "gemini-2.0-flash",
       contents: interviewGenerationPrompt,
       config: {
         responseMimeType: "application/json",
@@ -49,7 +49,10 @@ export async function generateCustomInterview(type: string, role: string, length
           properties,
           required: requiredFields,
         },
-        temperature: 1,
+        temperature: 0.8,
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
       },
     });
 
