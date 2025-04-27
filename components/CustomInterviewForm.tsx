@@ -51,8 +51,8 @@ const CustomInterviewForm = () => {
       // generate a new interview and get its id from the backend
       const { id } = await generateCustomInterview(type, role, length, difficulty, jobDescription, uid);
       if(!id){
-        throw new Error
         toast.error("Error generating interview");
+        throw new Error
       }
       // initialize a blank feedback
       await initializeFeedback(uid, id);

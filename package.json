@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "load-interviews": "node scripts/loadTrivialInterviews.ts"
+    "load-interviews": "node scripts/loadTrivialInterviews.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.5",
@@ -20,6 +21,7 @@
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-select": "^2.1.6",
     "@radix-ui/react-slot": "^1.1.2",
+    "@uidotdev/usehooks": "github:uidotdev/usehooks",
     "@vapi-ai/web": "^2.2.5",
     "ai": "^4.2.10",
     "class-variance-authority": "^0.7.1",
@@ -56,6 +58,7 @@
     "eslint-config-next": "15.2.4",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^1.6.1"
   }
 }

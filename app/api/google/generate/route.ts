@@ -1,120 +1,73 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 import { db } from "@/firebase/admin";
+import { interviewGenerationExamples } from "@/public";
 import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY });
 
 export async function generateCustomInterview(type: string, role: string, length: number, difficulty: string, jobDescription: string | undefined, uid: string){
   try{
-    // generate the questions, and description
-    const interviewGenerationPrompt = `Generate interview content for a ${difficulty} ${role} role (${length} min).
+    const interviewGenerationPrompt =
+      `Generate interview content for a ${difficulty} ${role} role (${length} min).` +
+      (jobDescription ? ` Job description: ${jobDescription}` : "") +
+      ` ROLE: Interview Q Gen. TYPE:"${type}". OUTPUT: Questions ONLY. Description summary (15 words MAX) also.` +
+      interviewGenerationExamples;
 
-      ${jobDescription ? "Job description: " + jobDescription : ""}
+    // Prepare dynamic schema
+    const properties: Record<string, any> = {
+      description: {
+        type: Type.STRING,
+        description: "Brief description of interview contents (15 words MAX)",
+      },
+      questions: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+        description: "Either 5-7 behavioral questions or 1 LeetCode problem description",
+      },
+    };
 
-      ROLE: Interview Q Gen. TYPE:"${type}". OUTPUT: Questions ONLY. Description summary (15 words MAX) also.
+    const requiredFields = ["description", "questions"];
 
-      IF TYPE="behavioral":
-        GEN 5-7 Qs: background, teamwork, problem-solving, leadership, adaptability. NO code/algo Qs.
-        1st Q: Self-intro.
-        Mix generic/nuanced Qs. Tailor to job desc (if avail).
-        TXT2SPEECH safe: NO / * or special chars.
+    // Only include solution for non-behavioral (technical) interviews
+    if (type !== "behavioral") {
+      properties.solution = {
+        type: Type.STRING,
+        description: "The solution guide for the chosen LeetCode problem. Required for technical interview.",
+      };
+      requiredFields.push("solution");
+    }
 
-      IF TYPE="technical":
-        FIND 1 LeetCode (NOT well-known, trivial, or Blind 75). DIFF based on role:
-          Trivial: Easy
-          Intern/New Grad/Junior: Med
-          Mid: Harder Med
-          Senior: Hard
-        SOLE PURPOSE: Write the problem description and 2-3 input+output examples in VALID HTML code. OUTPUT: HTML ONLY. NO extra text, explanations, etc. Use <pre><code> tags for multi-line code. NO behavioral Qs.
-        HTML FORMAT EXAMPLE (FOLLOW STRUCTURE AND STYLING DON'T COPY CONTENT):
-          <p><strong>Problem Description:</strong></p>
-          <p>
-            Given an <code>m x n</code> 2D binary grid <code>grid</code> which represents a map of
-            <code>'1'</code>s (land) and <code>'0'</code>s (water), return the number of islands.
-          </p>
-          <p>
-            An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.
-            You may assume all four edges of the grid are all surrounded by water.
-          </p>
-
-          <p><strong>Input:</strong></p>
-          <ul>
-            <li><code>char[][] grid</code> – The map of the island</li>
-          </ul>
-
-          <p><strong>Output:</strong></p>
-          <ul>
-            <li><code>int numOfIslands</code> – The number of islands</li>
-          </ul>
-
-          <p><strong>Example 1:</strong></p>
-          <pre><code>Input: grid = [
-            ["1","1","1","1","0"],
-            ["1","1","0","1","0"],
-            ["1","1","0","0","0"],
-            ["0","0","0","0","0"]
-          ]
-          Output: 1</code></pre>
-          <p><strong>Explanation:</strong><br/>
-          There is one island (i.e., one group of connected 1s).</p>
-
-          <p><strong>Example 2:</strong></p>
-          <pre><code>Input: grid = [
-            ["1","1","0","0","0"],
-            ["1","1","0","0","0"],
-            ["0","0","1","0","0"],
-            ["0","0","0","1","1"]
-          ]
-          Output: 3</code></pre>
-          <p><strong>Explanation:</strong><br/>
-          There are three islands.</p>
-
-          <p><strong>Constraints:</strong></p>
-          <ul>
-            <li><code>m == grid.length</code></li>
-            <li><code>n == grid[i].length</code></li>
-            <li><code>1 <= m, n <= 300</code></li>
-            <li><code>grid[i][j]</code> is <code>'0'</code> or <code>'1'</code>.</li>
-          </ul>
-
-      ADD description: STRING, 15 words MAX. #Brief interview summary
-    `;
-
+    // Generate content
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-2.5-flash-preview-04-17",
       contents: interviewGenerationPrompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
-          properties: {
-            description: {
-              type: Type.STRING,
-              description: "Brief interview summary (15 words max)",
-            },
-            questions: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Either 5-7 behavioral questions or 1 LeetCode problem description",
-            },
-          },
-          required: ["description", "questions"],
+          properties,
+          required: requiredFields,
         },
         temperature: 1,
       },
     });
+
     const data = JSON.parse(response.text!);
     
-    const newInterview = {
-      type: type,
-      name: role + " interview",
-      difficulty: difficulty,
-      length: length,
+    // Build the interview object, including solution if it exists
+    const newInterview: Record<string, any> = {
+      type,
+      name: `${role} interview`,
+      difficulty,
+      length,
       description: data.description,
       createdBy: uid,
       createdAt: new Date().toISOString(),
       questions: data.questions,
-    }
+      // spread in solution only when it's defined
+      ...(data.solution !== undefined ? { solution: data.solution } : {}),
+    };
 
     const res = await db.collection("interviews").add(newInterview);
     console.log("New custom interview added: " + res.id);

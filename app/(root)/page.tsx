@@ -14,7 +14,7 @@ const Page = () => {
             Become FAANG-Ready With AI Mock Software Engineering Interviews
           </h1>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl">
-            Test your technical & behavioral skills against live AI recruiters & get instant quality feedback!
+            Test your technical & behavioral skills against live AI recruiters!
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button asChild className="btn-primary w-[250px] max-w-lg text-black">
@@ -85,7 +85,7 @@ const Page = () => {
           <h2 className="text-2xl sm:text-3xl font-bold mb-6">Ready to ace your next interview?</h2>
           <p className="text-slate-300 mb-8">Join thousands of developers who&apos;ve improved their interview skills with Simterview</p>
           <Button asChild className="btn-primary text-black">
-            <Link href="/custom-interview">Start practicing now</Link>
+            <Link href="/interview-list">Start practicing now</Link>
           </Button>
         </div>
       </section>
