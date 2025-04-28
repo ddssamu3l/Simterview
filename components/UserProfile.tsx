@@ -2,8 +2,13 @@ import React from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { formatISODate } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const UserProfile = ({name, email, coinCount, id, createdAt}: User) => {
+  function handlePurchaseClick(){
+    toast.message("Purchase feature is still under development. Coming soon!");
+  }
+
   return (
     <div className="w-full mx-auto mb-12">
       <div className="border rounded-lg p-8">
@@ -53,7 +58,10 @@ const UserProfile = ({name, email, coinCount, id, createdAt}: User) => {
                   <p className="text-xs text-slate-400 mb-4">
                     SimCoins are used to access AI interviews
                   </p>
-                  <Button className="w-full btn-primary text-black mt-auto">
+                  <Button 
+                    className="w-full btn-primary text-black mt-auto"
+                    onClick={()=> handlePurchaseClick()}
+                  >
                     Purchase More
                   </Button>
                 </div>
