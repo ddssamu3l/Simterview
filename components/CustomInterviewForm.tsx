@@ -26,9 +26,9 @@ const CustomInterviewForm = () => {
   const form = useForm<z.infer<typeof interviewFormSchema>>({
     resolver: zodResolver(interviewFormSchema),
     defaultValues: {
-      type: "behavioral",
+      type: "technical",
       role: "",
-      length: 30,
+      length: 45,
       difficulty: "Intern",
       jobDescription: "",
     },

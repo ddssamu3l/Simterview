@@ -77,7 +77,7 @@ export const stsConfig: StsConfig = {
   context: {
     "messages": [
       {
-        "content": "Hi! I'm H, I'll be your interviewer today. Toward the end, we'll have a feedback section and you’ll also have time to ask me any questions you may have. If you have any questions reguarding the format of the interview, feel free to ask! Are you ready to begin?",
+        "content": "Hi! I'm H, I'll be your interviewer today. We'll go over our questions, and toward the end, we'll have a feedback section and you’ll also have time to ask me any questions you may have. If you have any questions reguarding the format of the interview, feel free to ask! Are you ready to begin?",
         "role": "assistant"
       }
     ],
