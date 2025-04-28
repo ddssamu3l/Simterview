@@ -77,7 +77,7 @@ export const stsConfig: StsConfig = {
   context: {
     "messages": [
       {
-        "content": "Hi! I'm H, an AI interviewer from Simterview. We'll be doing a technical interview today. We'll spend the last 5 minutes on your questions. Are you familiar with the interview structure and format?",
+        "content": "Hi! I'm H, I'll be your interviewer today. Are you familiar with the interview structure and format?",
         "role": "assistant"
       }
     ],
