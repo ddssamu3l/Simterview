@@ -170,7 +170,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           setInterviewReady(true);
 
           setTime(interviewDetails.data.length * 60);
-          setIsBehavioral(interviewDetails.data.type === "behavioral");
+          setIsBehavioral(interviewDetails.data.type === "behavioral" || interviewDetails.data.type === "Behavioral");
+          console.log("TYPE: " + interviewDetails.data.type);
+
         } else {
           throw new Error("Error: interview data missing or belongs to another user.");
         }
@@ -1018,10 +1020,10 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     <div className="flex flex-col call-view h-full">
       {isBehavioral ? (
         // Original UI for Behavioral interviews
-        <>
-          <div>
-            <div className="text-xl font-semibold text-center">
-              Time:{formatTime(time)}
+        <div className="mt-24 flex flex-col h-full w-full border-b items-center justify-between">
+          <div className="">
+            <div className="text-2xl font-semibold text-center">
+              Time: {formatTime(time)}
             </div>
           </div>
          
@@ -1094,7 +1096,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           <div className="h-20 md:h-12 text-sm md:text-base mt-2 flex flex-col items-center text-gray-200 overflow-y-auto">
             {messages.length > 0 ? <Transcript /> : null}
           </div>
-        </>
+        </div>
       ) : (
         // New UI for Technical interviews
         <div className="flex flex-col h-full w-full border-b">
