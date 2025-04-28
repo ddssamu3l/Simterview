@@ -20,7 +20,7 @@ import {
   ADD_BEHIND_SCENES_EVENT,
 } from "./VoiceBotReducer";
 
-const defaultSleepTimeoutSeconds = 30;
+const defaultSleepTimeoutSeconds = 60;
 
 export enum EventType {
   SETTINGS_APPLIED = "SettingsApplied",
