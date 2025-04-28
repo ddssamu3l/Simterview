@@ -22,6 +22,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "scripts/loadInterviews.ts", "components/App.js", "components/DeepgramInterview.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "scripts/loadInterviews.ts", "components/App.js", "components/DeepgramInterview.tsx"],
   "exclude": ["node_modules"]
 }
