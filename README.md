@@ -1,4 +1,4 @@
 # Simterview - SWE interviews against AI recruiters
 - Simterview lets Software Engineers practice behavioral and technical interviews with an AI interviewer to unlock more career opportunities.
 
-<img width="1665" alt="截屏2025-04-13 下午9 12 28" src="https://github.com/user-attachments/assets/9111f465-1607-4252-a72f-95bd9bdfd8a9" />
+[![YouTube Demo](https://img.youtube.com/vi/IFatf2_YOcg/hqdefault.jpg)](https://www.youtube.com/watch?v=IFatf2_YOcg)
