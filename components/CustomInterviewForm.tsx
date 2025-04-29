@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 import React, { useState } from 'react'
 import { z } from 'zod'
@@ -192,7 +193,7 @@ const CustomInterviewForm = () => {
                 )}
               />
 
-              {isBehavioral && (
+              {/* {isBehavioral && ( */}
                 <FormField
                   control={form.control}
                   name="jobDescription"
@@ -213,7 +214,7 @@ const CustomInterviewForm = () => {
                     </FormItem>
                   )}
                 />
-              )}
+              {/* )} */}
 
               {/* Submit button */}
               <Button

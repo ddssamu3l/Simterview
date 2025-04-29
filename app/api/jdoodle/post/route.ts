@@ -1,4 +1,23 @@
 "use server"
+/**
+ * Executes code using the JDoodle API.
+ * 
+ * This function sends code to the JDoodle API for compilation and execution,
+ * supporting Python, Java, and C++. It maps the input language to JDoodle's
+ * language and version parameters, sends the code for execution, and returns
+ * the execution results.
+ * 
+ * @param {Object} params - The code execution parameters
+ * @param {string} params.language - The programming language ("python", "java", or "cpp")
+ * @param {string} params.code - The code to execute
+ * @returns {Promise<{stdout: string, stderr: string, memory: string, cpuTime: string}>}
+ *   Object containing execution results:
+ *   - stdout: Standard output from the code execution
+ *   - stderr: Standard error (empty if no errors)
+ *   - memory: Memory usage information
+ *   - cpuTime: CPU time used for execution
+ * @throws {Error} If the JDoodle API call fails
+ */
 export async function runCode({ language, code }: { language: string; code: string }) {
   const langMap: Record<string, { language: string; versionIndex: string }> = {
     python: { language: 'python3', versionIndex: '3' },

@@ -1,6 +1,16 @@
 "use server"
 import { db } from "@/firebase/admin"
 
+/**
+ * Retrieves a specific feedback record by its document ID.
+ * 
+ * @param {string} id - The Firestore document ID of the feedback to retrieve
+ * @returns {Promise<FeedbackResponse>} A response object containing:
+ *   - success: boolean indicating if the operation succeeded
+ *   - status: HTTP status code (200 for success, 500 for error)
+ *   - data: The feedback document data if found
+ *   - error: Error message if operation failed
+ */
 export async function getFeedback(id: string): Promise<FeedbackResponse>{
   try{
     const feedbacksSnapshot = await db.collection('feedbacks').doc(id).get();
@@ -25,6 +35,17 @@ export async function getFeedback(id: string): Promise<FeedbackResponse>{
   }
 }
 
+/**
+ * Creates a new feedback record for a user-interview pair if one doesn't already exist.
+ * 
+ * This function checks if a feedback record already exists for the specified user and
+ * interview. If not, it creates a new feedback record with default values.
+ * 
+ * @param {string} userId - The ID of the user taking the interview
+ * @param {string} interviewId - The ID of the interview being taken
+ * @returns {Promise<{success: boolean, status: number, error?: string}>} 
+ *   - A response object with success status and error message if applicable
+ */
 export async function initializeFeedback(userId: string, interviewId: string){
   try{
     const feedbacksSnapshot = await db.collection('feedbacks')

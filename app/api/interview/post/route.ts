@@ -1,6 +1,23 @@
 "use server"
 import { db } from "@/firebase/admin"
 
+/**
+ * Saves or updates interview feedback in Firestore.
+ * 
+ * This function checks if feedback for the given interview and user already exists.
+ * If it does, the existing feedback is updated. If not, a new feedback record is created.
+ * The feedback includes assessment of the interview performance, strengths, areas for
+ * improvement, and an overall assessment.
+ * 
+ * @param {FeedbackForm} params - The feedback data object
+ * @param {string} params.interviewId - ID of the interview
+ * @param {string} params.userId - ID of the user who took the interview
+ * @param {boolean} params.passed - Whether the user passed the interview
+ * @param {string} params.strengths - Feedback on the user's strengths
+ * @param {string} params.areasForImprovement - Feedback on areas where the user can improve
+ * @param {string} params.finalAssessment - Overall assessment of the user's performance
+ * @returns {Promise<{success: boolean, status: number}>} Result object with success flag and status code
+ */
 export async function saveInterviewFeedback({ interviewId, userId, passed, strengths, areasForImprovement, finalAssessment }: FeedbackForm){
   try{
     const feedbacksRef = db.collection('feedbacks');

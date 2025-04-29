@@ -188,10 +188,12 @@ export async function getPublicInterviews(userId: string): Promise<InterviewResp
     });
 
     // 3. enrich each interview if there's feedback
+    // On /interview-list, show past interviews and their feedback dates (if the user has done that particular interview before).
+    // For public interviews with feedback for a given user, link to /feedback/[id] instead of /live-interview/[id].
     const enriched = interviews.map(iv => {
       const fb = feedbackMap[iv.id];
-      return fb
-        ? { ...iv, passed: fb.passed, createdAt: fb.createdAt }
+      return fb && fb.id
+        ? { ...iv, passed: fb.passed, createdAt: fb.createdAt, id: fb.id }
         : iv;
     });
 

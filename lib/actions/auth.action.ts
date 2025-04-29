@@ -3,8 +3,25 @@
 import { db, auth } from "@/firebase/admin";
 import { cookies } from "next/headers";
 
+/**
+ * Duration of one week in seconds.
+ * 
+ * Used to set expiration time for session cookies.
+ * Calculated as: 60 (seconds) * 60 (minutes) * 24 (hours) * 7 (days)
+ * 
+ * @type {number}
+ */
 const ONE_WEEK = 60 * 60 * 24 * 7
 
+/**
+ * Handles GitHub authentication and user creation in Firestore.
+ * 
+ * This function verifies an ID token from GitHub authentication, creates a user
+ * record in Firestore if one doesn't exist, and sets a session cookie for the user.
+ * 
+ * @param {string} idToken - The Firebase ID token obtained from GitHub auth
+ * @returns {Promise<{success: boolean, message: string}>} Authentication result
+ */
 export async function handleGitHubAuth(idToken: string) {
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
@@ -42,6 +59,18 @@ export async function handleGitHubAuth(idToken: string) {
   }
 }
 
+/**
+ * Creates a new user account in Firestore.
+ * 
+ * This function checks if a user with the given UID already exists, and if not,
+ * creates a new user record in Firestore with the provided information.
+ * 
+ * @param {SignUpParams} params - Object containing user signup parameters
+ *   - uid: The Firebase Auth UID for the new user
+ *   - name: The display name for the new user
+ *   - email: The email address for the new user
+ * @returns {Promise<{success: boolean, message: string}>} Account creation result
+ */
 export async function signUp(params: SignUpParams){
   const {uid, name, email} = params;
 
@@ -86,6 +115,18 @@ export async function signUp(params: SignUpParams){
   }
 }
 
+/**
+ * Signs in a user with email and ID token.
+ * 
+ * This function verifies that a user with the provided email exists in Firebase Auth,
+ * and if so, sets a session cookie for the user using the provided ID token.
+ * 
+ * @param {SignInParams} params - Object containing sign-in parameters
+ *   - email: The email address of the user trying to sign in
+ *   - idToken: The Firebase ID token to use for authentication
+ * @returns {Promise<{success: boolean, message: string} | undefined>} 
+ *   Authentication result, or undefined on success
+ */
 export async function signIn(params: SignInParams){
   const {email, idToken} = params;
 
@@ -111,6 +152,15 @@ export async function signIn(params: SignInParams){
   }
 }
 
+/**
+ * Creates and sets a session cookie for authenticated users.
+ * 
+ * This function creates a secure session cookie using Firebase Auth and sets it
+ * in the browser with appropriate security settings.
+ * 
+ * @param {string} idToken - The Firebase ID token to use for creating the session
+ * @returns {Promise<void>}
+ */
 export async function setSessionCookie(idToken: string){
   const cookieStore = await cookies();
 
@@ -127,6 +177,14 @@ export async function setSessionCookie(idToken: string){
   })
 }
 
+/**
+ * Retrieves the currently authenticated user from the session cookie.
+ * 
+ * This function verifies the session cookie, retrieves the user record from Firestore,
+ * and returns the user data if the user is authenticated and exists.
+ * 
+ * @returns {Promise<User | null>} The authenticated user object or null if not authenticated
+ */
 export async function getCurrentUser(): Promise<User | null>{
   const cookieStore = await cookies();
 
@@ -153,6 +211,14 @@ export async function getCurrentUser(): Promise<User | null>{
   }
 }
 
+/**
+ * Checks if the current user is authenticated.
+ * 
+ * This is a convenience function that attempts to get the current user
+ * and returns a boolean indicating whether a user is authenticated.
+ * 
+ * @returns {Promise<boolean>} True if the user is authenticated, false otherwise
+ */
 export async function isAuthenticated(){
   const user = await getCurrentUser();
   return !!user;

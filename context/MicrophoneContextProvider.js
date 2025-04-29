@@ -2,8 +2,25 @@
 
 import { createContext, useCallback, useContext, useState } from "react";
 
+/**
+ * React context for managing microphone access and audio processing.
+ * 
+ * This context provides state and functions for initializing,
+ * starting, and stopping the microphone, as well as accessing
+ * the audio processing nodes.
+ */
 const MicrophoneContext = createContext();
 
+/**
+ * Provider component for microphone functionality.
+ * 
+ * This component manages the microphone state and audio processing
+ * pipeline, including initialization, starting, and stopping.
+ * 
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components
+ * @returns {React.ReactElement} Provider component
+ */
 const MicrophoneContextProvider = ({ children }) => {
   /**
    * Possible microphone states:
@@ -14,11 +31,42 @@ const MicrophoneContextProvider = ({ children }) => {
    * - paused - 3
    */
   const [microphoneState, setMicrophoneState] = useState(null);
+  
+  /**
+   * The audio source node from the microphone.
+   * Used to capture audio input from the user.
+   */
   const [microphone, setMicrophone] = useState();
+  
+  /**
+   * The audio context used for microphone processing.
+   */
   const [microphoneAudioContext, setMicrophoneAudioContext] = useState();
+  
+  /**
+   * The ScriptProcessorNode used to process audio data.
+   * This node is used to send audio data to Deepgram.
+   */
   const [processor, setProcessor] = useState();
-  const [mediaStream, setMediaStream] = useState(null); // Store the media stream separately
+  
+  /**
+   * The raw media stream from getUserMedia.
+   * Stored separately to allow proper cleanup.
+   */
+  const [mediaStream, setMediaStream] = useState(null);
 
+  /**
+   * Initializes the microphone and audio processing pipeline.
+   * 
+   * This async function:
+   * 1. Requests microphone permission from the user
+   * 2. Creates an AudioContext for processing
+   * 3. Sets up the MediaStreamSource and ScriptProcessorNode
+   * 4. Updates the component state with the initialized nodes
+   * 
+   * @returns {Promise<void>}
+   * @throws {Error} If microphone access is denied or unavailable
+   */
   const setupMicrophone = async () => {
     console.log("Starting microphone setup");
     setMicrophoneState(0);
@@ -67,6 +115,13 @@ const MicrophoneContextProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Activates the microphone by connecting the audio nodes.
+   * 
+   * This function connects the microphone source to the script processor
+   * and the processor to the audio context destination, creating the
+   * complete audio processing pipeline.
+   */
   const startMicrophone = useCallback(() => {
     console.log("Activating microphone");
     microphone.connect(processor);
@@ -74,6 +129,18 @@ const MicrophoneContextProvider = ({ children }) => {
     setMicrophoneState(2);
   }, [processor, microphoneAudioContext, microphone]);
   
+  /**
+   * Stops the microphone and cleans up all audio resources.
+   * 
+   * This function:
+   * 1. Disconnects all audio processing nodes
+   * 2. Stops all media stream tracks
+   * 3. Suspends the audio context
+   * 4. Clears state references
+   * 
+   * This ensures that the microphone is properly released and
+   * can be acquired by other applications.
+   */
   const stopMicrophone = useCallback(() => {
     console.log("Stopping microphone");
     
@@ -119,6 +186,9 @@ const MicrophoneContextProvider = ({ children }) => {
     }
   }, [microphone, processor, microphoneAudioContext, mediaStream, microphoneState]);
 
+  /**
+   * The context value provided to consumers.
+   */
   return (
     <MicrophoneContext.Provider
       value={{
@@ -137,6 +207,22 @@ const MicrophoneContextProvider = ({ children }) => {
   );
 };
 
+/**
+ * Custom hook to access the Microphone context.
+ * 
+ * This hook provides access to the microphone state and functions
+ * for controlling the microphone and audio processing.
+ * 
+ * @returns {Object} The Microphone context value
+ * @property {MediaStreamAudioSourceNode} microphone - The audio source node
+ * @property {Function} startMicrophone - Function to start the microphone
+ * @property {Function} stopMicrophone - Function to stop the microphone
+ * @property {Function} setupMicrophone - Function to initialize the microphone
+ * @property {number|null} microphoneState - Current microphone state
+ * @property {AudioContext} microphoneAudioContext - Audio context for processing
+ * @property {Function} setMicrophoneAudioContext - Function to update the audio context
+ * @property {ScriptProcessorNode} processor - Audio processor node
+ */
 function useMicrophone() {
   return useContext(MicrophoneContext);
 }
