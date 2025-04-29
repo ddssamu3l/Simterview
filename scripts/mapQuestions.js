@@ -72,6 +72,7 @@ async function fetchProblemDetail(titleSlug) {
         content
         difficulty
         article
+        tag
       }
     }
   `;

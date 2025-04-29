@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getInterview } from '@/lib/interview';
 import { saveInterviewFeedback } from '@/app/api/interview/post/route';
-import { deductCoins } from '@/app/api/user/post/route';
 import { initializeFeedback } from '@/lib/feedback';
 import Transcript from "./Transcript";
 import { useDeepgram } from "../context/DeepgramContextProvider";

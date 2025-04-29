@@ -4,8 +4,27 @@ import { db } from "@/firebase/admin";
 import { interviewGenerationExamples } from "@/public";
 import { GoogleGenAI, Type } from "@google/genai";
 
+/**
+ * Google Generative AI client instance with API key from environment variables.
+ */
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY });
 
+/**
+ * Generates a custom interview based on specified parameters using Google's Generative AI.
+ * 
+ * This function creates a tailored interview by generating questions based on the type,
+ * role, difficulty level, and optional job description. For technical interviews,
+ * it also generates a solution guide. The generated interview is stored in Firestore.
+ * 
+ * @param {string} type - The type of interview ("behavioral" or "technical")
+ * @param {string} role - The job role (e.g., "Software Engineer", "Product Manager")
+ * @param {number} length - The interview duration in minutes
+ * @param {string} difficulty - The difficulty level (e.g., "Intern", "Junior", "Senior")
+ * @param {string|undefined} jobDescription - Optional job description to tailor questions
+ * @param {string} uid - User ID of the creator
+ * @returns {Promise<{success: boolean, id?: string, status: number, error?: any}>} 
+ *   Result object with success flag, interview ID (if successful), status code, and error (if any)
+ */
 export async function generateCustomInterview(type: string, role: string, length: number, difficulty: string, jobDescription: string | undefined, uid: string){
   try{
     const interviewGenerationPrompt =
@@ -51,10 +70,12 @@ export async function generateCustomInterview(type: string, role: string, length
         },
         temperature: 0.8,
         thinkingConfig: {
-          thinkingBudget: 0,
+          thinkingBudget: 0, // thinking budget of 0 turns off the thinking mode
         },
       },
     });
+
+    // go to firebase questions bank (500 questions), randomly select 1
 
     const data = JSON.parse(response.text!);
     
