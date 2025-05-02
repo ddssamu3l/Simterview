@@ -75,6 +75,7 @@ const CustomInterviewForm = () => {
   return (
     <div className="flex mx-auto max-w-7xl max-h-[90vh] max-sm:px-4 max-sm:py-8">
       <div className="card-border min-w-[300px] lg:min-w-[566px] max-w-lg bg-transparent">
+        
         <div className="flex flex-col gap-8 py-12 px-8 lg:px-10">
           {/* Header */}
           <div className="flex flex-col items-center space-y-4">

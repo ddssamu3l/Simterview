@@ -18,10 +18,10 @@ const Page = () => {
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button asChild className="btn-primary w-[250px] max-w-lg text-black">
-              <Link href="/custom-interview">Generate your AI interview</Link>
+              <Link href="/custom-interview">Generate A Custom AI Interview</Link>
             </Button>
             <Button asChild className="btn-primary w-[250px] max-w-lg text-black">
-              <Link href="/interview-list">See Pre-Generated Interviews</Link>
+              <Link href="/interview-list">Try A Mock Interview Now</Link>
             </Button>
           </div>
         </div>
