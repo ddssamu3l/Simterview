@@ -19,15 +19,45 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://simterview.com/sign-in</loc>
+    <loc>https://simterview.com/blog</loc>
+    <lastmod>2024-05-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://simterview.com/blog/mastering-data-structures</loc>
     <lastmod>2024-05-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://simterview.com/sign-up</loc>
+    <loc>https://simterview.com/blog/behavioral-interview-star</loc>
     <lastmod>2024-05-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://simterview.com/blog/system-design-interview</loc>
+    <lastmod>2024-05-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://simterview.com/blog/faang-interview-process</loc>
+    <lastmod>2024-05-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://simterview.com/sign-in</loc>
+    <lastmod>2024-05-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://simterview.com/sign-up</loc>
+    <lastmod>2024-05-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 </urlset>

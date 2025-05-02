@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
