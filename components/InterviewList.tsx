@@ -40,7 +40,7 @@ const InterviewList = () => {
       <div className="border rounded-lg p-8 w-full">
         <h1 className="text-2xl sm:text-3xl font-bold mb-8">Available Interviews</h1>
         
-        <div className="mb-8 border rounded-md p-4 bg-slate-900/30">
+        {/* <div className="mb-8 border rounded-md p-4 bg-slate-900/30">
           <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
             <div className="flex items-center gap-2">
               <Image 
@@ -50,12 +50,11 @@ const InterviewList = () => {
                 height={24} 
                 unoptimized 
               />
-              {/* <p className="text-slate-300">1 SimCoin = 1 Minute of speaking time with the AI interviewer.</p> */}
-              <p className="text-slate-300">Launch Promotion: All interviews are free!</p>
+              <p className="text-slate-300">1 SimCoin = 1 Minute of speaking time with the AI interviewer.</p>
             </div>
-            {/* <p className="text-slate-300 text-sm">(Coins are deducted after completing the interview)</p> */}
+            <p className="text-slate-300 text-sm">(Coins are deducted after completing the interview)</p>
           </div>
-        </div>
+        </div> */}
 
         {!isLoading ? (
           interviews && interviews.length > 0 ? (
