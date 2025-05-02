@@ -116,7 +116,7 @@ const Page = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
+      {/* Testimonials Section
       <section className="w-full py-16" aria-label="Success Stories">
         <div className="max-w-6xl mx-auto px-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">Success Stories from Software Engineers</h2>
@@ -133,7 +133,7 @@ const Page = () => {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Final CTA */}
       <section className="w-full border-t py-16" aria-label="Get Started">
