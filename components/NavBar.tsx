@@ -29,6 +29,9 @@ const NavBar = ({ username, userId, coinCount }: { username: string, userId: str
               <Link href="/interview-list" className="text-slate-300 px-4">
                 Interview List
               </Link>
+              <Link href="/blog" className="text-slate-300 px-4">
+                Guide Blogs
+              </Link>
               <Link href="mailto:rainsongsoftware@gmail.com" className="text-slate-300 px-4">
                 Support
               </Link>

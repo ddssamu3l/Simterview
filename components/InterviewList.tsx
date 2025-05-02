@@ -43,10 +43,17 @@ const InterviewList = () => {
         <div className="mb-8 border rounded-md p-4 bg-slate-900/30">
           <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
             <div className="flex items-center gap-2">
-              <Image src="/coin.png" alt="SimCoin" width={24} height={24} unoptimized />
-              <p className="text-slate-300">1 SimCoin = 1 Minute of speaking time with the AI interviewer.</p>
+              <Image 
+                src="/coin.png" 
+                alt="SimCoin - Interview currency token" 
+                width={24} 
+                height={24} 
+                unoptimized 
+              />
+              {/* <p className="text-slate-300">1 SimCoin = 1 Minute of speaking time with the AI interviewer.</p> */}
+              <p className="text-slate-300">Launch Promotion: All interviews are free!</p>
             </div>
-            <p className="text-slate-300 text-sm">(Coins are deducted after completing the interview)</p>
+            {/* <p className="text-slate-300 text-sm">(Coins are deducted after completing the interview)</p> */}
           </div>
         </div>
 
@@ -61,7 +68,7 @@ const InterviewList = () => {
             <div className="border rounded-md p-8 flex flex-col items-center">
               <Image
                 src="/confused.png"
-                alt="No interviews"
+                alt="No interviews available - Confused face illustration"
                 width={100}
                 height={100}
                 className="mb-6 opacity-60"

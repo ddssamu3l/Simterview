@@ -37,7 +37,7 @@ export default function CodeRunner({ onRun, onCodeChange }: CodeEditorProps) {
     () =>
       debounce((newCode: string) => {
         onCodeChangeRef.current?.(newCode);
-      }, 1000),
+      }, 500),
     []
   );
   useEffect(() => () => debouncedCodeChange.cancel(), [debouncedCodeChange]);
