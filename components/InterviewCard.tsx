@@ -15,16 +15,33 @@ const InterviewCard = ({ id, name, length, difficulty, description, createdAt, q
               <p className="badge-text flex items-center text-sm font-medium">
                 {(passed != null && passed != undefined) && (
                   passed ? (
-                    <Image src="/check.svg" alt="checkmark" width={16} height={16} className="mr-2" />
+                    <Image 
+                      src="/check.svg" 
+                      alt="Successfully completed interview" 
+                      width={16} 
+                      height={16} 
+                      className="mr-2" 
+                    />
                   ) : (
-                    <Image src="/cross.svg" alt="crossmark" width={16} height={16} className="mr-2" />
+                    <Image 
+                      src="/cross.svg" 
+                      alt="Interview not yet completed" 
+                      width={16} 
+                      height={16} 
+                      className="mr-2" 
+                    />
                   )
                 )}
                 {difficulty}
               </p>
               <p className="badge-text text-md font-medium">{type}</p>
               <div className="absolute left-1/2 transform -translate-x-1/2 flex gap-1 items-center px-2 py-1 rounded">
-                <Image src="/timer.svg" alt="duration icon" width={14} height={14} />
+                <Image 
+                  src="/timer.svg" 
+                  alt="Interview duration" 
+                  width={14} 
+                  height={14} 
+                />
                 <p className="text-xs text-slate-300">{length}min</p>
               </div>
             </div>

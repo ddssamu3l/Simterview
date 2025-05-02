@@ -1,0 +1,10 @@
+# robots.txt file for Simterview
+User-agent: *
+Allow: /
+
+# Disallow sensitive or utility pages
+Disallow: /api/
+Disallow: /_next/
+
+# Sitemap location
+Sitemap: https://simterview.com/sitemap.xml
