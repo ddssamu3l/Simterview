@@ -37,7 +37,7 @@ const Page = () => {
       {/* Features Section */}
       <section className="w-full border-t border-b py-16" aria-label="Interview Practice Features">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">Why Software Engineers Choose Simterview</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12">Why Would You Interview On Simterview</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="border hover:bg-dark-300 p-6 text-center">

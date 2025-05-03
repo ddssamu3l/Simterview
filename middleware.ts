@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const publicRoutes = ["/", "/sign-in", "/sign-up"];
+const publicRoutes = ["/", "/sign-in", "/sign-up", "/blog"];
 
 export default function middleware(req: NextRequest) {
   const sessionCookie = req.cookies.get("session")?.value;
