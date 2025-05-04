@@ -40,7 +40,7 @@ export async function generateCustomInterview(
     // The prompt instructs Gemini to return a JSON object with category and problemId, using the mapped difficulty
     const mappedDifficulty = mapDifficulty(difficulty);
     const idPrompt = `
-You are an AI interview assistant. Based on the role and job description, select:\n- The best matching category (algorithms, database, or design)\n- A LeetCode problem ID that exists in that category and the specified difficulty\n\nThe difficulty is: ${mappedDifficulty}\n\nRespond ONLY in this JSON format:\n{"category": "<category>", "problemId": "<problemId>"}\n\nRole: ${role}\n${jobDescription ? `Job Description: ${jobDescription}` : ""}`;
+You are an AI interview assistant. Based on the role and job jobDescription, select:\n- The best matching category (algorithms, database, or design)\n- A LeetCode problem ID that exists in that category and the specified difficulty\n\nThe difficulty is: ${mappedDifficulty}\n\nRespond ONLY in this JSON format:\n{"category": "<category>", "problemId": "<problemId>"}\n\nRole: ${role}\n${jobDescription ? `Job Description: ${jobDescription}` : ""}`;
 
     const idResponse = await ai.models.generateContent({
       model: "gemini-1.5-flash",
@@ -103,7 +103,7 @@ You are an AI interview assistant. Based on the role and job description, select
       name: `${role} interview`,
       difficulty,
       length,
-      description: `Generated ${type} interview for ${role} (Problem ID: ${problemId})`,
+      description: jobDescription || `Generated ${type} interview for ${role} (Problem ID: ${problemId})`,
       createdBy: uid,
       createdAt: new Date().toISOString(),
       questions: [description],
