@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 import { db } from "@/firebase/admin";
 import { interviewGenerationExamples } from "@/public";
@@ -10,132 +9,275 @@ import { GoogleGenAI, Type } from "@google/genai";
 const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY });
 
 /**
- * Generates a custom interview based on specified parameters using Google's Generative AI and Firestore.
- *
- * This function:
- * 1. Asks Gemini to select a relevant LeetCode-style problem ID based on the role, type, difficulty, and job description.
- * 2. Determines the correct question category (algorithms, database, design) and difficulty (easy, medium, hard).
- * 3. Fetches the corresponding question and solution from Firestore.
- * 4. Builds and stores a new interview document in Firestore.
- *
- * @param {string} type - The type/category of interview (e.g., "algorithm", "database", "design", "behavioral")
+ * Generates a custom interview based on specified parameters.
+ * Now uses a pre-populated question bank for technical questions to avoid timeouts.
+ * 
+ * @param {string} type - The type of interview ("behavioral" or "technical")
  * @param {string} role - The job role (e.g., "Software Engineer", "Product Manager")
  * @param {number} length - The interview duration in minutes
  * @param {string} difficulty - The difficulty level (e.g., "Intern", "Junior", "Senior")
  * @param {string|undefined} jobDescription - Optional job description to tailor questions
  * @param {string} uid - User ID of the creator
- * @returns {Promise<{success: boolean, id?: string, status: number, error?: any}>}
- *   Result object with success flag, interview ID (if successful), status code, and error (if any)
+ * @returns {Promise<{success: boolean, id?: string, status: number, error?: any}>} 
  */
-export async function generateCustomInterview(
-  type: string,
-  role: string,
-  length: number,
-  difficulty: string,
-  jobDescription: string | undefined,
-  uid: string
-) {
+export async function generateCustomInterview(type: string, role: string, length: number, 
+  difficulty: string, jobDescription: string | undefined, uid: string) {
   try {
-    // Step 1: Ask Gemini to choose a relevant category and LeetCode-style problem ID
-    // The prompt instructs Gemini to return a JSON object with category and problemId, using the mapped difficulty
-    const mappedDifficulty = mapDifficulty(difficulty);
-    const idPrompt = `
-You are an AI interview assistant. Based on the role and job jobDescription, select:\n- The best matching category (algorithms, database, or design)\n- A LeetCode problem ID that exists in that category and the specified difficulty\n\nThe difficulty is: ${mappedDifficulty}\n\nRespond ONLY in this JSON format:\n{"category": "<category>", "problemId": "<problemId>"}\n\nRole: ${role}\n${jobDescription ? `Job Description: ${jobDescription}` : ""}`;
-
-    const idResponse = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
-      contents: idPrompt,
-    });
-
-    // Log the raw Gemini response for debugging
-    console.log("Gemini response:", idResponse.text);
-
-    // Clean Gemini's response: remove code block markers and trim whitespace
-    let rawText = idResponse.text || "";
-    rawText = rawText.replace(/```json|```/g, "").trim();
-
-    let category = "algorithms";
-    let problemId = "";
-    try {
-      const parsed = JSON.parse(rawText);
-      category = parsed.category?.toLowerCase() || "algorithms";
-      // Extract only the first number (LeetCode ID) from the problemId string
-      const match = parsed.problemId?.match(/\d+/);
-      problemId = match ? match[0] : "";
-    } catch (err) {
-      throw new Error("Gemini did not return a valid JSON with category and problemId");
-    }
-
-    if (!problemId) {
-      throw new Error("Gemini did not return a valid problem ID");
-    }
-
-    // Step 2: Fetch the question data from Firebase
-    // Use mapped difficulty for Firestore path
-    const questionPath = `questions/${category}/${mappedDifficulty}/${problemId}`;
-    console.log("Fetching question from Firestore path:", questionPath);
-    // Reference the correct Firestore document
-    const questionRef = db
-      .collection("questions")
-      .doc(category)
-      .collection(mappedDifficulty)
-      .doc(problemId);
-
-    const questionSnap = await questionRef.get();
-
-    if (!questionSnap.exists) {
-      throw new Error(`Question ID ${problemId} not found in Firebase`);
-    }
-
-    // Extract question description and editorial (solution)
-    const questionData = questionSnap.data();
-    const description = questionData?.description;
-    const editorial = questionData?.editorial;
-
-    // Ensure required data is present
-    if (!description || (!editorial && type !== "behavioral")) {
-      throw new Error("Missing question description or solution");
-    }
-
-    // Step 3: Build the interview object to store in Firestore
+    // Create new interview object with placeholder
     const newInterview: Record<string, any> = {
       type,
       name: `${role} interview`,
       difficulty,
       length,
-      description: jobDescription || `Generated ${type} interview for ${role} (Problem ID: ${problemId})`,
       createdBy: uid,
       createdAt: new Date().toISOString(),
-      questions: [description],
-      // Only include solution for non-behavioral interviews
-      ...(type !== "behavioral" ? { solution: editorial } : {}),
     };
 
-    // Store the new interview in Firestore
+    // For behavioral interviews, generate questions using AI
+    if (type === "behavioral") {
+      const interviewGenerationPrompt =
+        `Generate interview content for a ${difficulty} ${role} role (${length} min).` +
+        (jobDescription ? ` Job description: ${jobDescription}` : "") +
+        ` ROLE: Interview Q Gen. TYPE:"${type}". OUTPUT: Questions ONLY. Description summary (15 words MAX) also.` +
+        interviewGenerationExamples;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-04-17",
+        contents: interviewGenerationPrompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              description: {
+                type: Type.STRING,
+                description: "Brief description of interview contents (15 words MAX)",
+              },
+              questions: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "5-7 behavioral questions",
+              },
+            },
+            required: ["description", "questions"],
+          },
+          temperature: 0.8,
+        },
+      });
+
+      const data = JSON.parse(response.text!);
+      newInterview.description = data.description;
+      newInterview.questions = data.questions;
+    } 
+    // For technical interviews, use AI to determine question type and difficulty
+    else {
+      // Analyze job description for skills if provided
+      const skills = jobDescription ? await analyzeJobDescription(jobDescription) : [];
+      
+      // First, determine the best question type and difficulty based on role and job description
+      const questionTypeResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-04-17",
+        contents: `I need to select an appropriate technical interview question type and difficulty for a candidate.
+
+Role: ${role}
+Difficulty level selected: ${difficulty}
+${jobDescription ? `Job Description: ${jobDescription}` : "No job description provided."}
+${skills.length > 0 ? `Extracted Skills: ${skills.join(", ")}` : ""}
+
+Based on this information, determine the most appropriate question type and difficulty level.
+For question type, choose ONE from: algorithms, database, design
+For difficulty, choose ONE from: easy, medium, hard
+
+Consider the following:
+- Software Engineers generally need algorithms questions
+- Database Engineers need database questions
+- System Architects need design questions
+- The job description may indicate specific technical areas of focus
+- Difficulty should match the role seniority but can be adjusted based on job requirements
+
+Return ONLY a JSON with two fields: questionType and questionDifficulty`,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              questionType: {
+                type: Type.STRING,
+                enum: ["algorithms", "database", "design"],
+                description: "The most appropriate question type"
+              },
+              questionDifficulty: {
+                type: Type.STRING,
+                enum: ["easy", "medium", "hard"],
+                description: "The most appropriate difficulty level"
+              },
+              reasoning: {
+                type: Type.STRING,
+                description: "Brief explanation for the selection"
+              }
+            },
+            required: ["questionType", "questionDifficulty", "reasoning"]
+          },
+          temperature: 0.3,
+        },
+      });
+      
+      const aiRecommendation = JSON.parse(questionTypeResponse.text!);
+      
+      // Use AI recommendation for question type
+      const questionType = aiRecommendation.questionType;
+      
+      //const baseDifficulty = mapDifficultyLevel(difficulty);
+      const questionDifficulty = aiRecommendation.questionDifficulty;
+      
+      // Add AI reasoning to the interview document
+      newInterview.questionTypeReasoning = aiRecommendation.reasoning || `Selected ${questionType} (${questionDifficulty}) based on role and job requirements.`;
+      
+      // Fetch a random question from the question bank using AI-determined parameters
+      const questionSnapshot = await fetchRandomQuestion(questionType, questionDifficulty);
+      
+      if (questionSnapshot.empty) {
+        throw new Error(`No ${questionDifficulty} ${questionType} questions found in database`);
+      }
+
+      // Get a random document from the results
+      const questions = questionSnapshot.docs;
+      const randomIndex = Math.floor(Math.random() * questions.length);
+      const questionDoc = questions[randomIndex];
+      const questionId = questionDoc.id; // This is the problem ID (e.g., "1", "100", "1002")
+      
+      // Get the problem data from the selected document
+      const problemData = questionDoc.data();
+      
+      // Generate a custom description with AI (fast operation)
+      const descriptionResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-04-17",
+        contents: `Write a brief description (15 words max) for a ${difficulty} ${role} technical interview focusing on ${questionType}.`,
+        config: {
+          maxOutputTokens: 30,
+          temperature: 0.4,
+        },
+      });
+      
+      // Add question data to interview
+      newInterview.description = descriptionResponse.text?.trim() || `${difficulty} ${role} ${questionType} interview`;
+      newInterview.questions = [problemData.problemDescription || ""];
+      newInterview.solution = problemData.editorialSolution || "";
+      newInterview.problemId = questionId; // Store the problem ID for reference
+      newInterview.questionType = questionType; // Store the question type
+      newInterview.questionDifficulty = questionDifficulty; // Store the actual difficulty used
+      
+      // Track usage of this question (don't await to avoid slowing down response)
+      trackQuestionUsage(questionType, questionDifficulty, questionId);
+    }
+
+    // Save to database
     const res = await db.collection("interviews").add(newInterview);
     console.log("New custom interview added: " + res.id);
 
     return { success: true, id: res.id, status: 200 };
-  } catch (e) {
-    // Log and return error details
-    console.error("Error generating custom interview: ", e);
+  } catch(e) {
+    console.error("Error generating custom interview: " + e);
     return { success: false, status: 500, error: e };
   }
 }
 
 /**
- * Maps user-friendly difficulty levels to Firestore subcollections.
- * e.g., "intern", "junior" => "easy"; "mid" => "medium"; "senior", "lead", "staff" => "hard"
- * @param {string} difficulty - The difficulty string from the user
- * @returns {string} - The mapped Firestore difficulty level
+ * Tracks usage metrics for the questions to avoid overusing the same questions
+ * @param questionType The type of question used
+ * @param difficulty The difficulty level
+ * @param problemId The specific problem ID that was used
  */
-function mapDifficulty(difficulty: string): string {
-  const mapping: Record<string, string> = {
-    "intern": "easy",
-    "junior/new grad": "easy",
-    "mid level": "medium",
-    "senior": "hard",
-  };
+async function trackQuestionUsage(questionType: string, difficulty: string, problemId: string) {
+  try {
+    // Update usage counter in a "question_metrics" collection
+    const metricRef = db.collection("question_metrics").doc(`${questionType}_${difficulty}_${problemId}`);
+    
+    // Use transaction to safely update the counter
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(metricRef);
+      
+      if (doc.exists) {
+        // Increment usage count
+        transaction.update(metricRef, {
+          useCount: (doc.data()?.useCount || 0) + 1,
+          lastUsed: new Date().toISOString()
+        });
+      } else {
+        // Create new metric
+        transaction.set(metricRef, {
+          questionType,
+          difficulty,
+          problemId,
+          useCount: 1,
+          firstUsed: new Date().toISOString(),
+          lastUsed: new Date().toISOString()
+        });
+      }
+    });
+  } catch (error) {
+    // Don't let metrics tracking failure affect the main function
+    console.error("Failed to track question usage:", error);
+  }
+}
 
-  return mapping[difficulty.toLowerCase()] || "easy"; // default fallback
+/**
+ * Analyzes a job description to extract key technical skills.
+ * This helps with matching appropriate question types.
+ * @param jobDescription The job description text
+ * @returns Array of technical skills
+ */
+async function analyzeJobDescription(jobDescription: string | undefined): Promise<string[]> {
+  if (!jobDescription || jobDescription.trim() === "") {
+    return [];
+  }
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-04-17",
+      contents: `Extract the key technical skills from this job description. Return only a JSON array of strings with the skill names.
+      
+Job Description: ${jobDescription}`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING },
+          description: "Array of technical skills from the job description"
+        },
+        temperature: 0.2,
+        maxOutputTokens: 100,
+      },
+    });
+    
+    if (!response.text || response.text.trim() === "") {
+      console.log("Empty response from AI model when analyzing job description");
+      return [];
+    }
+    
+    try {
+      // Added additional error handling around JSON parsing
+      return JSON.parse(response.text) || [];
+    } catch (parseError) {
+      console.error("Error parsing AI response:", parseError);
+      console.log("Raw response text:", response.text);
+      return [];
+    }
+  } catch (error) {
+    console.error("Error analyzing job description:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetches a random question from the question bank based on type and difficulty
+ */
+async function fetchRandomQuestion(questionType: string, difficulty: string) {
+  // Navigate through the nested structure: questions → questionType → difficulty
+  const snapshot = await db.collection("questions")
+    .doc(questionType)
+    .collection(difficulty)
+    .get();
+  
+  return snapshot;
 }
