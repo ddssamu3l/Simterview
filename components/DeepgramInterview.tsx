@@ -1168,12 +1168,12 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
                 </>
               ) : (
                 <>
-                  <Button
+                  {/* <Button
                     onClick={handleDisconnect}
                     className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
                   >
                     Start Over
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={toggleMicrophone}
                     className={`${processor?.onaudioprocess ? 'bg-red-400' : 'bg-green-500'} w-[150px] text-white font-semibold hover:cursor-pointer`}

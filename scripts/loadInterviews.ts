@@ -1,114 +1,48 @@
-// // @ts-check
-// require('dotenv').config({ path: '.env.local' }); // Load environment variables from .env.local file
+/* eslint-disable @typescript-eslint/no-require-imports */
+// @ts-check
+require('dotenv').config({ path: '.env.local' }); // Load environment variables from .env.local file
 
-// // Check if Firebase credentials are available
-// if (!process.env.FIREBASE_PROJECT_ID || 
-//     !process.env.FIREBASE_CLIENT_EMAIL || 
-//     !process.env.FIREBASE_PRIVATE_KEY) {
-//   console.error("Firebase credentials are missing! Make sure you have a .env.local file with the following variables:");
-//   console.error("FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY");
-//   console.error("\nAlternatively, you can run this script inside the Next.js environment where these variables are already loaded.");
-//   process.exit(1);
-// }
+// Check if Firebase credentials are available
+if (!process.env.FIREBASE_PROJECT_ID || 
+    !process.env.FIREBASE_CLIENT_EMAIL || 
+    !process.env.FIREBASE_PRIVATE_KEY) {
+  console.error("Firebase credentials are missing! Make sure you have a .env.local file with the following variables:");
+  console.error("FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY");
+  console.error("\nAlternatively, you can run this script inside the Next.js environment where these variables are already loaded.");
+  process.exit(1);
+}
 
-// const { db } = require("../firebase/admin");
+const { db } = require("./firebaseAdmin");
 
-// const docs = [
-//   {
-//     "name": "Frontend Intern Behavioral Interview",
-//     "createdBy": "Simterview",
-//     "type": "behavioral",
-//     "difficulty": "Intern",
-//     "length": 25,
-//     "description": "Interview to evaluate frontend internship candidates’ communication, design empathy, and collaboration skills.",
-//     "questions": [
-//       "Tell me about a time you designed a UI component. What were your priorities and challenges?",
-//       "Describe a situation where you had to collaborate closely with a designer or backend developer.",
-//       "Have you ever received negative feedback about a user interface you built? How did you respond?",
-//       "Tell me about a time you advocated for better user experience over a faster delivery.",
-//       "How do you stay updated on modern frontend technologies and design trends?"
-//     ],
-//     "createdAt": "2025-04-17T12:00:00.000Z"
-//   }, {
-//     "name": "Backend Intern Behavioral Interview",
-//     "createdBy": "Simterview",
-//     "type": "behavioral",
-//     "difficulty": "Intern",
-//     "length": 25,
-//     "description": "Interview to assess backend candidates on problem solving, ownership, and backend collaboration.",
-//     "questions": [
-//       "Tell me about a backend system you helped build or maintain.",
-//       "Describe a time when you debugged a difficult backend issue.",
-//       "How do you typically write or validate tests for backend endpoints?",
-//       "Have you ever handled data modeling in a project? Walk me through your approach.",
-//       "Tell me about a time you made a tradeoff between performance and simplicity."
-//     ],
-//     "createdAt": "2025-04-17T12:00:00.000Z"
-//   }, {
-//     "name": "Fullstack Intern Behavioral Interview",
-//     "createdBy": "Simterview",
-//     "type": "behavioral",
-//     "difficulty": "Intern",
-//     "length": 30,
-//     "description": "Interview to evaluate fullstack internship candidates across frontend, backend, and collaboration scenarios.",
-//     "questions": [
-//       "Walk me through a project where you worked on both frontend and backend.",
-//       "How do you decide what should be done client-side vs. server-side?",
-//       "Describe a time you worked in a cross-functional team. What challenges did you face?",
-//       "Tell me about a time when you had to learn a new stack or framework quickly.",
-//       "How do you manage state across different parts of a fullstack application?"
-//     ],
-//     "createdAt": "2025-04-17T12:00:00.000Z"
-//   }, {
-//     "name": "FizzBuzz and Multiples",
-//     "createdBy": "Simterview",
-//     "type": "technical",
-//     "difficulty": "Intern",
-//     "length": 30,
-//     "description": "A light programming challenge for intern-level candidates to assess logic and loop control.",
-//     "questions": [
-//       "<p><strong>Problem Description:</strong></p><p>Write a function that returns a list of strings representing numbers from <code>1</code> to <code>n</code>. But for multiples of three, add <code>\"Fizz\"</code> instead of the number, and for the multiples of five add <code>\"Buzz\"</code>. For numbers which are multiples of both three and five, add <code>\"FizzBuzz\"</code>.</p><p><strong>Input:</strong></p><ul><li><code>int n</code> – The upper bound of the number sequence</li></ul><p><strong>Output:</strong></p><ul><li><code>List&lt;String&gt;</code> – Transformed sequence</li></ul><p><strong>Example:</strong></p><pre><code>Input: n = 5\nOutput: [\"1\",\"2\",\"Fizz\",\"4\",\"Buzz\"]</code></pre><p><strong>Constraints:</strong></p><ul><li><code>1 &lt;= n &lt;= 10<sup>4</sup></code></li></ul>"
-//     ],
-//     "createdAt": "2025-04-17T12:00:00.000Z"
-//   }, {
-//     "name": "Reverse a Linked List",
-//     "createdBy": "Simterview",
-//     "type": "technical",
-//     "difficulty": "Intern",
-//     "length": 30,
-//     "description": "A common interview problem to assess pointer manipulation and iteration.",
-//     "questions": [
-//       "<p><strong>Problem Description:</strong></p><p>Given the <code>head</code> of a singly linked list, reverse the list and return the reversed list.</p><p><strong>Input:</strong></p><ul><li><code>ListNode head</code> – The head node of a singly linked list</li></ul><p><strong>Output:</strong></p><ul><li><code>ListNode</code> – The new head of the reversed list</li></ul><p><strong>Example:</strong></p><pre><code>Input: head = [1,2,3,4,5]\nOutput: [5,4,3,2,1]</code></pre><p><strong>Constraints:</strong></p><ul><li>The number of nodes in the list is the range <code>[0, 5000]</code></li><li><code>-5000 &lt;= Node.val &lt;= 5000</code></li></ul>"
-//     ],
-//     "createdAt": "2025-04-17T12:00:00.000Z"
-//   }, {
-//     "name": "Valid Parentheses Checker",
-//     "createdBy": "Simterview",
-//     "type": "technical",
-//     "difficulty": "Intern",
-//     "length": 25,
-//     "description": "A stack-based problem to assess logical matching of parentheses.",
-//     "questions": [
-//       "<p><strong>Problem Description:</strong></p><p>Given a string <code>s</code> containing just the characters <code>'('</code>, <code>')'</code>, <code>'{'</code>, <code>'}'</code>, <code>'['</code>, and <code>']'</code>, determine if the input string is valid.</p><p>An input string is valid if:<br/>1. Open brackets are closed by the same type of brackets.<br/>2. Open brackets are closed in the correct order.</p><p><strong>Input:</strong></p><ul><li><code>string s</code> – The input string containing brackets</li></ul><p><strong>Output:</strong></p><ul><li><code>boolean</code> – Whether the string is valid</li></ul><p><strong>Example:</strong></p><pre><code>Input: s = \"()[]{}\"\nOutput: true</code></pre><pre><code>Input: s = \"(]\"\nOutput: false</code></pre><p><strong>Constraints:</strong></p><ul><li><code>1 &lt;= s.length &lt;= 10<sup>4</sup></code></li><li><code>s</code> consists only of parentheses characters</li></ul>"
-//     ],
-//     "createdAt": "2025-04-17T12:00:00.000Z"
-//   }, 
- 
-// ];
+const docs = [
+  {
+    "name": "RainSong Internship Interview",
+    "createdBy": "Simterview",
+    "type": "technical",
+    "difficulty": "Intern",
+    "length": 60,
+    "description": "Online assessment for the RainSong Software Engineering Intern",
+    "questions": [
+      `<p>Given an integer array of size <code>n</code>, find all elements that appear more than <code>&lfloor; n/3 &rfloor;</code> times.</p> <p>&nbsp;</p> <p><strong class="example">Example 1:</strong></p> <pre> <strong>Input:</strong> nums = [3,2,3] <strong>Output:</strong> [3] </pre> <p><strong class="example">Example 2:</strong></p> <pre> <strong>Input:</strong> nums = [1] <strong>Output:</strong> [1] </pre> <p><strong class="example">Example 3:</strong></p> <pre> <strong>Input:</strong> nums = [1,2] <strong>Output:</strong> [1,2] </pre> <p>&nbsp;</p> <p><strong>Constraints:</strong></p> <ul> <li><code>1 &lt;= nums.length &lt;= 5 * 10<sup>4</sup></code></li> <li><code>-10<sup>9</sup> &lt;= nums[i] &lt;= 10<sup>9</sup></code></li> </ul> <p>&nbsp;</p> <p><strong>Follow up:</strong> Could you solve the problem in linear time and in <code>O(1)</code> space?</p>`
+    ],
+    "solution": "For this problem, two constraints we have to satisfy are linear runtime and constant space. In this article, we will focus on the solution which satisfies both constraints. --- ### Approach 1: Boyer-Moore Voting Algorithm **Intuition** To figure out a $$O(1)$$ space requirement, we would need to get this simple intuition first. For an array of length `n`: * There can be at most **one** majority element which is **more than** `⌊n/2⌋` times. * There can be at most **two** majority elements which are **more than** `⌊n/3⌋` times. * There can be at most **three** majority elements which are **more than** `⌊n/4⌋` times. and so on. Knowing this can help us understand how we can keep track of majority elements which satisfies $$O(1)$$ space requirement. Let's try to get an intuition for the case where we would like to find a majority element which is more than `⌊n/2⌋` times in an array of length `n`. The idea is to have two variables, one holding a potential candidate for majority element and a counter to keep track of whether to swap a potential candidate or not. Why can we get away with only two variables? Because *there can be at most **one** majority element which is more than `⌊n/2⌋` times*. Therefore, having only one variable to hold the only potential candidate and one counter is enough. While scanning the array, the counter is incremented if you encounter an element which is exactly same as the potential candidate but decremented otherwise. When the counter reaches zero, the element which will be encountered next will become the potential candidate. Keep doing this procedure while scanning the array. However, when you have exhausted the array, you have to make sure that the element recorded in the potential candidate variable is the majority element by checking whether it occurs more than `⌊n/2⌋` times in the array. In the original [Majority Element](https://leetcode.com/problems/majority-element/) problem, it is guaranteed that there is a majority element in the array so your implementation can omit the second pass. However, in a general case, you need this second pass since your array can have no majority elements at all! The counter is initialized as `0` and the potential candidate as `None` at the start of the array. !?!../Documents/229_majority_element_ii_first.json:1200,600!?! If an element is truly a majority element, it will stick in the potential candidate variable, no matter how it shows up in the array (i.e. all clustered in the beginning of the array, all clustered near the end of the array, or showing up anywhere in the array), after the whole array has been scanned. Of course, while you are scanning the array, the element might be replaced by another element in the process, but the true majority element will definitely remain as the potential candidate in the end. Now figuring out the majority elements which show up more than `⌊n/3⌋` times is not that hard anymore. Using the intuition presented in the beginning, we only need four variables: two for holding two potential candidates and two for holding two corresponding counters. Similar to the above case, both candidates are initialized as `None` in the beginning with their corresponding counters being 0. While going through the array: * If the current element is equal to one of the potential candidate, the count for that candidate is increased while leaving the count of the other candidate as it is. * If the counter reaches zero, the candidate associated with that counter will be replaced with the next element **if** the next element is not equal to the other candidate as well. * Both counters are decremented **only when** the current element is different from both candidates. !?!../Documents/229_majority_element_ii_second.json:1200,600!?! **Implementation** **Complexity Analysis** * Time complexity : $$O(N)$$ where $$N$$ is the size of `nums`. We first go through `nums` looking for first and second potential candidates. We then count the number of occurrences for these two potential candidates in `nums`. Therefore, our runtime is $$O(N) + O(N) = O(2N) \approx O(N)$$. * Space complexity : $$O(1)$$ since we only have four variables for holding two potential candidates and two counters. Even the returning array is at most 2 elements.",
+    "createdAt": "2025-04-06T12:00:00.000Z"
+  }
+];
 
-// async function load() {
-//   try {
-//     const batch = db.batch();
-//     const colRef = db.collection('interviews');
-//     docs.forEach(docData => {
-//       const docRef = colRef.doc();  // auto-ID
-//       batch.set(docRef, docData);
-//     });
-//     await batch.commit();
-//     console.log('✅ Successfully loaded trivial interviews!');
-//   } catch (error) {
-//     console.error('❌ Error loading interviews:', error);
-//   }
-// }
+async function load() {
+  try {
+    const batch = db.batch();
+    const colRef = db.collection('interviews');
+    docs.forEach(docData => {
+      const docRef = colRef.doc();  // auto-ID
+      batch.set(docRef, docData);
+    });
+    await batch.commit();
+    console.log('✅ Successfully loaded trivial interviews!');
+  } catch (error) {
+    console.error('❌ Error loading interviews:', error);
+  }
+}
 
-// load();
+load();
