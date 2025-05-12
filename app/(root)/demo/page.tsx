@@ -1,16 +1,10 @@
-"use client"; // Required for hooks and event handlers in DemoDeepgramInterview
+"use client";
 
 import React from "react";
 import DemoDeepgramInterview from "@/components/DemoDeepgramInterview";
 import { VoiceBotProvider } from "@/context/VoiceBotContextProvider";
 import { MicrophoneContextProvider } from "@/context/MicrophoneContextProvider";
 import { DeepgramContextProvider } from "@/context/DeepgramContextProvider";
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Live Interview Demo | Simterview",
-  description: "Try a live interactive demo of an AI-powered mock interview.",
-};
 
 const DemoPage = () => {
   return (
