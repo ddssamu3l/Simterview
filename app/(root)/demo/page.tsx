@@ -8,12 +8,9 @@ import { DeepgramContextProvider } from "@/context/DeepgramContextProvider";
 
 const DemoPage = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-12 px-4">
-      <h1 className="text-3xl sm:text-4xl font-bold text-center mb-8">
-        Simterview Live Demo
-      </h1>
+    <div className="flex flex-col items-center  min-h-screen py-12 px-4">
       <section
-        className="w-full max-w-4xl h-[600px] sm:h-[700px] flex items-center justify-center border rounded-lg shadow-xl"
+        className="w-full max-w-4xl h-[600px] sm:h-[700px] flex items-center justify-center rounded-lg shadow-xl"
         aria-label="Live Interview Demo"
       >
         <VoiceBotProvider>

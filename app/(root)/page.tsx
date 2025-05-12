@@ -36,20 +36,9 @@ const Page = () => {
               asChild
               className="btn-primary w-[250px] max-w-lg text-black"
             >
-              <Link href="/custom-interview">Create Custom Interview</Link>
-            </Button>
-            <Button
-              asChild
-              className="btn-primary w-[250px] max-w-lg text-black"
-            >
-              <Link href="/interview-list">Practice Mock Interviews</Link>
-            </Button>
-            <Button
-              asChild
-              className="btn-secondary w-[250px] max-w-lg text-white hover:bg-gray-700"
-            >
               <Link href="/demo">Try a Quick Demo</Link>
             </Button>
+
           </div>
         </div>
       </section>

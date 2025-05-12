@@ -27,7 +27,6 @@ const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_A
  */
 export async function generateCustomInterview(type: string, role: string, length: number, difficulty: string, jobDescription: string | undefined, uid: string){
   try{
-    console.log("Parameters: " + )
     const interviewGenerationPrompt =
       `Generate interview content for a ${difficulty} ${role} role (${length} min).` +
       (jobDescription ? ` Job description: ${jobDescription}` : "") +
