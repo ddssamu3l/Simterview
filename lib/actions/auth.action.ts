@@ -14,6 +14,13 @@ import { cookies } from "next/headers";
 const ONE_WEEK = 60 * 60 * 24 * 7
 
 /**
+ * Default coin count for new users.
+ * 
+ * @type {number}
+ */
+const DEFAULT_COIN_COUNT = 200;
+
+/**
  * Handles GitHub authentication and user creation in Firestore.
  * 
  * This function verifies an ID token from GitHub authentication, creates a user
@@ -39,7 +46,7 @@ export async function handleGitHubAuth(idToken: string) {
         name: userRecord.displayName || userRecord.email,
         createdAt: new Date().toISOString(),
         authProvider: 'github',
-        coinCount: 200,
+        coinCount: DEFAULT_COIN_COUNT,
       });
     }
 
@@ -90,7 +97,7 @@ export async function signUp(params: SignUpParams){
       email,
       createdAt: new Date().toISOString(),
       authProvider: 'email',
-      coinCount: 200,
+      coinCount: DEFAULT_COIN_COUNT,
     })
 
     return{

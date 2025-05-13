@@ -294,7 +294,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           console.log("Starting microphone after configuration sent");
           startMicrophone();
           startListening(true);
-        }, 500); // 500ms delay to ensure settings are processed
+        }, 300); // 300ms delay to ensure settings are processed
       };
 
       // Add event listener for WebSocket open event
@@ -710,11 +710,11 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       console.log(`Leaving interview... Deducting ${coinCost} coins`);
       
       // Make synchronous XHR request to deduct coins
-      // Commenting out coin deduction
-      // const xhr = new XMLHttpRequest();
-      // xhr.open('POST', '/api/user/post', false); // synchronous
-      // xhr.setRequestHeader('Content-Type', 'application/json');
-      // xhr.send(JSON.stringify({ userId, coinCount, coinCost }));
+     
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/user/post', false); // synchronous
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({ userId, coinCount, coinCost }));
       
       // Manually clean up resources (without the page reload)
       // Clear all timers

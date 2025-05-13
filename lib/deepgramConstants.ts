@@ -1,4 +1,8 @@
-import { type AudioConfig, type StsConfig, type Voice } from "../utils/deepgramUtils";
+import {
+  type AudioConfig,
+  type StsConfig,
+  type Voice,
+} from "../utils/deepgramUtils";
 
 const audioConfig: AudioConfig = {
   input: {
@@ -46,43 +50,54 @@ export const stsConfig: StsConfig = {
         `,
       functions: [
         {
-          "name": "saveInterviewFeedback",
-          "description": "Creates an internal evaluation of the candidate's performance in the database. IMPORTANT: Call saveInterviewFeedback when there are 5 minutes left in the interview or when the candidate finishes all of the questions early, whichever is first. Call once and never again.",
-          "parameters": {
-            "type": "object",
-            "properties": {
-              "passed": {
-                "type": "integer",
-                "description": "Whether the candidate passed the interview. If passed, return 1. If failed, return -1.",
+          name: "saveInterviewFeedback",
+          description:
+            "Creates an internal evaluation of the candidate's performance in the database. IMPORTANT: Call saveInterviewFeedback when there are 5 minutes left in the interview or when the candidate finishes all of the questions early, whichever is first. Call once and never again.",
+          parameters: {
+            type: "object",
+            properties: {
+              passed: {
+                type: "integer",
+                description:
+                  "Whether the candidate passed the interview. If passed, return 1. If failed, return -1.",
               },
-              "strengths": {
-                "type": "string",
-                "description": "1-4 List of candidate's strengths (provide concrete examples from interview)"
+              strengths: {
+                type: "string",
+                description:
+                  "1-4 List of candidate's strengths (provide concrete examples from interview)",
               },
-              "areasForImprovement": {
-                "type": "string",
-                "description": "1-4 List of areas where the candidate can improve (provide concrete examples from interview)"
+              areasForImprovement: {
+                type: "string",
+                description:
+                  "1-4 List of areas where the candidate can improve (provide concrete examples from interview)",
               },
-              "finalAssessment": {
-                "type": "string",
-                "description": "1 paragraph description of the overall assessment of the candidate's performance. Write it like a report to the hiring manager."
-              }
+              finalAssessment: {
+                type: "string",
+                description:
+                  "1 paragraph description of the overall assessment of the candidate's performance. Write it like a report to the hiring manager.",
+              },
             },
-            "required": ["passed", "strengths", "areasForImprovement", "finalAssessment"],
-          }
-        }
+            required: [
+              "passed",
+              "strengths",
+              "areasForImprovement",
+              "finalAssessment",
+            ],
+          },
+        },
       ],
     },
   },
   context: {
-    "messages": [
+    messages: [
       {
-        "content": "Hi! I'm H, I'll be your interviewer today. We'll go over our questions, and toward the end, we'll have a feedback section and you’ll also have time to ask me any questions you may have. If you have any questions reguarding the format of the interview, feel free to ask! Are you ready to begin?",
-        "role": "assistant"
-      }
+        content:
+          "Hi! I'm H, I'll be your interviewer today. How are you doing today?",
+        role: "assistant",
+      },
     ],
-    "replay": true
-  }
+    replay: true,
+  },
 };
 
 // Voice constants
