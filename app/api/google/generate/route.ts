@@ -188,6 +188,13 @@ export async function generateCustomInterview(type: string, role: string, length
         
         // Get the problem data from the selected document
         const problemData = questionDoc.data();
+        console.log(` Retrieved problem data with keys: ${Object.keys(problemData).join(', ')}`);
+        
+        // Ensure we have the required fields
+        if (!problemData.description) {
+          console.error(` Question ${questionId} is missing description field`);
+          throw new Error(`Selected question is missing required field: description`);
+        }
         
         // Generate a custom description with AI (fast operation)
         console.log(` ${new Date().toLocaleTimeString()} - Generating interview description`);
@@ -201,19 +208,28 @@ export async function generateCustomInterview(type: string, role: string, length
         });
         
         // Add question data to interview
-        const description = descriptionResponse.text?.trim() || `${difficulty} ${role} ${questionType} interview`;
-        console.log(` Generated description: "${description}"`);
+        const interviewDescription = descriptionResponse.text?.trim() || `${difficulty} ${role} ${questionType} interview`;
+        console.log(` Generated description: "${interviewDescription}"`);
         
-        newInterview.description = description;
-        newInterview.questions = [problemData.problemDescription || ""];
-        newInterview.solution = problemData.editorialSolution || "";
+        // Set the required fields in the interview object
+        newInterview.description = interviewDescription;
+        newInterview.questions = [problemData.description]; // Ensure it's an array as expected by the original code
+        
+        // Add solution if available, or use an empty string as fallback
+        if (problemData.solution) {
+          newInterview.solution = problemData.solution;
+          console.log(` Solution found, length: ${newInterview.solution.length} characters`);
+        } else {
+          console.log(` No solution found in database, using empty string`);
+          newInterview.solution = "";
+        }
+        
+        // Add additional metadata that might be useful
         newInterview.problemId = questionId;
         newInterview.questionType = questionType;
         newInterview.questionDifficulty = questionDifficulty;
         
         console.log(` Question length: ${newInterview.questions[0].length} characters`);
-        console.log(` Solution length: ${newInterview.solution.length} characters`);
-        
       } catch (parseError) {
         console.error(` Error processing technical interview: ${parseError}`);
         console.log(` Raw AI response: ${questionTypeResponse.text?.substring(0, 200)}...`);
