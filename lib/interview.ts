@@ -11,7 +11,7 @@ import { FieldPath } from "firebase-admin/firestore";
  *  - questions: string[] (HTML strings)
  *  - type: string (“technical” or “behavioral”)
  *  - createdBy: string (UID of the author)
- *  - solution?: string (optional field; only included if present on the doc)
+ *  - editorial?: string (optional field; only included if present on the doc)
  *
  * @param {string} interviewId  Firestore document ID of the interview
  * @returns {Promise<{
@@ -23,7 +23,7 @@ import { FieldPath } from "firebase-admin/firestore";
  *     questions: string[];
  *     type: string;
  *     createdBy: string;
- *     solution?: string;
+ *     editorial?: string;
  *   };
  * }>}
  */
@@ -36,17 +36,17 @@ export async function getInterview(interviewId: string) {
     }
     console.log(interviewSnapshot.data());
 
-    const { difficulty, length, questions, solution, type, createdBy } = interviewSnapshot.data() as {
+    const { difficulty, length, questions, editorial, type, createdBy } = interviewSnapshot.data() as {
       difficulty: string;
       length: number,
       questions: string[];
-      solution?: string;
+      editorial?: string;
       type: string;
       createdBy: string;
     };
     
-    if (solution !== undefined) {
-      return { success: true, status: 200, data: { difficulty, length, questions, solution, type, createdBy } };
+    if (editorial !== undefined) {
+      return { success: true, status: 200, data: { difficulty, length, questions, editorial, type, createdBy } };
     }
 
     return { success: true, status: 200, data: { difficulty, length, questions, type, createdBy } };
