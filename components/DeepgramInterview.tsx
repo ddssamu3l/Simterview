@@ -79,7 +79,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const [isBehavioral, setIsBehavioral] = useState(false);
   const [interviewLength, setInterviewLength] = useState(0);
   const [interviewQuestions, setInterviewQuestions] = useState([""]);
-  const [interviewSolution, setInterviewSolution] = useState("");
+  const [interviewEditorial, setInterviewEditorial] = useState("");
   const [lastCodeOutput, setLastCodeOutput] = useState<string>('');
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
 
@@ -165,13 +165,10 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           setInterviewType(interviewDetails.data.type);
           setInterviewLength(interviewDetails.data.length);
           setInterviewQuestions(interviewDetails.data.questions);
-          if (interviewDetails.data.solution) { setInterviewSolution(interviewDetails.data.solution); console.log("Solution guide: " + interviewDetails.data.solution);}
+          if (interviewDetails.data.editorial) { setInterviewEditorial(interviewDetails.data.editorial); console.log("Editorial: " + interviewDetails.data.editorial);}
           setInterviewReady(true);
-
           setTime(interviewDetails.data.length * 60);
-          setIsBehavioral(interviewDetails.data.type === "behavioral" || interviewDetails.data.type === "Behavioral");
-          console.log("TYPE: " + interviewDetails.data.type);
-
+          setIsBehavioral(interviewDetails.data.type === "behavioral");
         } else {
           throw new Error("Error: interview data missing or belongs to another user.");
         }
@@ -270,7 +267,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
         // Create custom system prompt based on interview details
-        const interviewDetailsSystemPrompt = `\n\nInterview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview questions:\n ${interviewQuestions} \n${interviewSolution === "" ? "" : "Interview question solution guide:\n" + interviewSolution}`;
+        const interviewDetailsSystemPrompt = `\n\nInterview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview questions:\n ${interviewQuestions} \n${interviewEditorial === "" ? "" : "Interview question editorial:\n" + interviewEditorial}`;
         
         // Modify the default STS config to include interview details
         const interviewStsConfig = {

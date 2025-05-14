@@ -121,6 +121,7 @@ export async function generateCustomInterview(type: string, role: string, length
         - Software Engineers generally need algorithms questions
         - Database Engineers need database questions
         - System Architects need design questions
+        - DEFAULT TO ALGORITHMS QUESTIONS
         - The job description may indicate specific technical areas of focus
         - Difficulty should match the role seniority but can be adjusted based on job requirements
 
