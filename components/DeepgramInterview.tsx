@@ -248,8 +248,8 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           setIsBehavioral(interviewDetails.data.type === "behavioral");
 
           // Create custom system prompt based on interview details
-          const interviewDetailsSystemPrompt = `\n\n\nINTERVIEW CONTENTS: \n\nInterview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview questions:\n ${interviewQuestions} \n${interviewEditorial === "" ? "" : "editorial solution:\n" + interviewEditorial}`;
-          setFullSystemPrompt((isBehavioral? behavioralSystemPrompt : technicalSystemPrompt) + interviewDetailsSystemPrompt);
+          const interviewDetailsSystemPrompt = `\n\n\nINTERVIEW CONTENTS: \n\nInterview level = ${interviewDetails.data.difficulty} Interview type = ${interviewDetails.data.type}, Interview length = ${interviewDetails.data.length} minutes, Interview questions:\n ${interviewDetails.data.questions.join('\n')} \n${interviewDetails.data.editorial === "" || !interviewDetails.data.editorial ? "" : "editorial solution:\n" + interviewDetails.data.editorial}`;
+          setFullSystemPrompt((interviewDetails.data.type === "behavioral" ? behavioralSystemPrompt : technicalSystemPrompt) + interviewDetailsSystemPrompt);
         } else {
           throw new Error("Error: interview data missing or belongs to another user.");
         }
@@ -347,6 +347,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
         // Modify the default STS config to include interview details
+        console.log("Full system prompt: " + fullSystemPrompt);
         const interviewStsConfig = {
           ...stsConfig,
           agent: {
