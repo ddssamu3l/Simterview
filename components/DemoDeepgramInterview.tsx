@@ -522,8 +522,8 @@ function DemoDeepgramInterview() {
       settingsApplied
     ) {
       sendSocketMessage(socket, {
-        type: "UpdateInstructions",
-        instructions: `${stsConfig.agent.think.instructions}\n${instructions}`,
+        type: "UpdatePrompt",
+        prompt: `${stsConfig.agent.think.instructions}\n${instructions}`,
       });
     }
     previousInstructionsRef.current = instructions;
@@ -833,8 +833,8 @@ function DemoDeepgramInterview() {
     ) {
       try {
         sendSocketMessage(socket, {
-          type: "UpdateInstructions",
-          instructions: `${stsConfig.agent.think.instructions}\n${text}`,
+          type: "UpdatePrompt",
+          prompt: `${stsConfig.agent.think.instructions}\n${text}`,
         });
       } catch (error) {
         console.error("Failed to send system message:", error);

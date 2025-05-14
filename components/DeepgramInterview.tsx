@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, useMemo } from "react";
 import Image from 'next/image';
 import { formatTime } from '@/lib/utils';
 import { Button } from './ui/button';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import { getInterview } from '@/lib/interview';
 import { saveInterviewFeedback } from '@/app/api/interview/post/route';
@@ -35,7 +35,6 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     status,
     messages,
     addVoicebotMessage,
-    addBehindTheScenesEvent,
     isWaitingForUserVoiceAfterSleep,
     toggleSleep,
     startListening,
@@ -67,6 +66,8 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
   // Router for navigation
   const router = useRouter();
+  const pathname = usePathname();
+  const previousPathnameRef = useRef(pathname);
 
   // State
   const [data, setData] = useState();
@@ -80,8 +81,10 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const [interviewLength, setInterviewLength] = useState(0);
   const [interviewQuestions, setInterviewQuestions] = useState([""]);
   const [interviewEditorial, setInterviewEditorial] = useState("");
+  const [fullSystemPrompt, setFullSystemPrompt] = useState("");
   const [lastCodeOutput, setLastCodeOutput] = useState<string>('');
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+  const [isMicManuallyMuted, setIsMicManuallyMuted] = useState(false);
 
   // Refs
   const audioContext = useRef<AudioContext | null>(null);
@@ -97,6 +100,79 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const userInactivityTimer = useRef<NodeJS.Timeout | null>(null);
   const keepAliveTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // Clean up resources and navigate
+  const cleanupAndNavigate = useCallback((destinationUrl: string, skipNavigation: boolean = false) => {
+    try {
+      // Deduct coins and clean up
+      const minutesLeft = Math.floor(time/60);
+      const coinCost = Math.max(0, interviewLength - minutesLeft);
+      console.log(`Leaving interview... Deducting ${coinCost} coins`);
+      
+      // Make synchronous XHR request to deduct coins
+     
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/user/post', false); // synchronous
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({ userId, coinCount, coinCost }));
+      
+      // Manually clean up resources (without the page reload)
+      // Clear all timers
+      if (userInactivityTimer.current) {
+        clearInterval(userInactivityTimer.current);
+        userInactivityTimer.current = null;
+      }
+      
+      if (keepAliveTimer.current) {
+        clearInterval(keepAliveTimer.current);
+        keepAliveTimer.current = null;
+      }
+      
+      // Stop the microphone completely
+      if (stopMicrophone) {
+        stopMicrophone();
+      }
+      
+      // Disconnect from Deepgram websocket
+      if (disconnectFromDeepgram) {
+        disconnectFromDeepgram();
+      }
+      
+      // Clear all scheduled audio playback sources
+      scheduledAudioSources.current.forEach(source => {
+        if (source) {
+          try {
+            source.stop();
+            source.disconnect();
+          } catch (err) {
+            // Ignore errors during cleanup
+          }
+        }
+      });
+      
+      // Suspend audio context if possible
+      if (audioContext.current && audioContext.current.state !== 'closed') {
+        try {
+          audioContext.current.suspend();
+        } catch (err) {
+          // Ignore errors during cleanup
+        }
+      }
+      
+      if (!skipNavigation) {
+        // Then navigate
+        window.location.href = destinationUrl;
+      } else {
+        console.log("Cleanup executed, navigation skipped.");
+      }
+    } catch (error) {
+      console.error("Error during navigation cleanup:", error);
+      // Continue with navigation even if there's an error, but only if not skipping navigation
+      if (!skipNavigation) {
+        window.location.href = destinationUrl;
+      }
+    }
+  }, [time, interviewLength, userId, coinCount, stopMicrophone, disconnectFromDeepgram, audioContext]);
+
   // Function calling logic (tools)
   interface SaveInterviewFeedbackInput {
     passed: number;
@@ -111,9 +187,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   ) => Promise<{ toolResponse: string }>;
 
   // Actual save handler, returns a string response
-  async function handleSaveInterviewFeedback(
+  const handleSaveInterviewFeedback = useCallback(async (
     { passed, strengths, areasForImprovement, finalAssessment }: SaveInterviewFeedbackInput
-  ): Promise<string> {
+  ): Promise<string> => {
     try {
       console.log("Saving interview feedback: " + finalAssessment);
       // Convert numeric passed to boolean
@@ -133,14 +209,14 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       toast.error('Error saving interview feedback: ' + error);
       return 'An error occured while saving feedback. Please try again.';
     }
-  }
+  }, [interviewId, userId]);
 
   // Map function names to handlers for AI tool calls
-  const functionsMap: Record<string, FuncType> = {
+  const functionsMap: Record<string, FuncType> = useMemo(() => ({
     saveInterviewFeedback: async (input) => ({
       toolResponse: await handleSaveInterviewFeedback(input),
     }),
-  };
+  }), [handleSaveInterviewFeedback]);
 
   // Initialize the audio context
   useEffect(() => {
@@ -160,15 +236,20 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     async function getInterviewDetails() {
       try {
         const interviewDetails = await getInterview(interviewId);
+        
         if (interviewDetails.data && (interviewDetails.data.createdBy === userId || interviewDetails.data.createdBy === "Simterview")) {
           setInterviewDifficulty(interviewDetails.data.difficulty);
           setInterviewType(interviewDetails.data.type);
           setInterviewLength(interviewDetails.data.length);
           setInterviewQuestions(interviewDetails.data.questions);
-          if (interviewDetails.data.editorial) { setInterviewEditorial(interviewDetails.data.editorial); console.log("Editorial: " + interviewDetails.data.editorial);}
+          if (interviewDetails.data.editorial) { setInterviewEditorial(interviewDetails.data.editorial); }
           setInterviewReady(true);
           setTime(interviewDetails.data.length * 60);
           setIsBehavioral(interviewDetails.data.type === "behavioral");
+
+          // Create custom system prompt based on interview details
+          const interviewDetailsSystemPrompt = `\n\n\nINTERVIEW CONTENTS: \n\nInterview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview questions:\n ${interviewQuestions} \n${interviewEditorial === "" ? "" : "editorial solution:\n" + interviewEditorial}`;
+          setFullSystemPrompt((isBehavioral? behavioralSystemPrompt : technicalSystemPrompt) + interviewDetailsSystemPrompt);
         } else {
           throw new Error("Error: interview data missing or belongs to another user.");
         }
@@ -179,6 +260,12 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     }
     getInterviewDetails();
   }, [interviewId, userId]);
+
+  // Quit interview by using our cleanup and navigation function
+  const handleQuit = useCallback(() => {
+    // Use the same cleanup function that's used by the click handler
+    cleanupAndNavigate(`/u/${userId}`);
+  }, [cleanupAndNavigate, userId]);
 
   // Timer mechanic
   useEffect(() => {
@@ -193,16 +280,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       setTime(prev => prev - 1);
     }, 1000);
 
-    // Only announce time remaining on specific intervals
-    if (time % 300 === 0 && time > 0) {
-      const minutesLeft = time / 60;
-      sendSystemMessage(minutesLeft + " minutes left.");
-      console.log(minutesLeft + " minutes left");
-    }
-
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [time, isInitialized, isDisconnected]);
+  }, [time, isInitialized, isDisconnected, handleQuit]);
 
   // Initialize microphone once on mount
   useEffect(() => {
@@ -266,9 +346,6 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   useEffect(() => {
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
-        // Create custom system prompt based on interview details
-        const interviewDetailsSystemPrompt = `\n\nInterview level = ${interviewDifficulty} Interview type = ${interviewType}, Interview length = ${time}, Interview questions:\n ${interviewQuestions} \n${interviewEditorial === "" ? "" : "Interview question editorial:\n" + interviewEditorial}`;
-        
         // Modify the default STS config to include interview details
         const interviewStsConfig = {
           ...stsConfig,
@@ -276,7 +353,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
             ...stsConfig.agent,
             think: {
               ...stsConfig.agent.think,
-              instructions: (isBehavioral? behavioralSystemPrompt + interviewDetailsSystemPrompt : technicalSystemPrompt + interviewDetailsSystemPrompt),
+              instructions: (fullSystemPrompt),
             }
           }
         };
@@ -333,10 +410,10 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     if (status === VoiceBotStatus.SLEEPING) {
       processor.onaudioprocess = null;
       toast.message("Your interviewer fell asleep from your inactivity. Please re-connect your mic!");
-    } else {
+    } else if (!isMicManuallyMuted) {
       processor.onaudioprocess = sendMicToSocket(socket);
     }
-  }, [status, processor, socket]);
+  }, [status, processor, socket, isMicManuallyMuted]);
 
   // Create analyzer for user voice
   useEffect(() => {
@@ -373,6 +450,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     isDisconnected,
     manuallyDisconnected,
     interviewReady
+    // connectToDeepgram was missing here but is used, it should be stable from context provider
   ]);
 
   // Audio buffering and playback
@@ -471,20 +549,20 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
         });
       }
       
-      // Ensure the audio processor is connected
-      if (!processor.onaudioprocess) {
-        console.log("Reconnecting audio processor after state change");
+      // Ensure the audio processor is connected, but only if not manually muted
+      if (!processor.onaudioprocess && !isMicManuallyMuted) {
+        console.log("Reconnecting audio processor after state change (not manually muted)");
         processor.onaudioprocess = sendMicToSocket(socket);
       }
     }
-  }, [status, socket, socketState, processor]);
+  }, [status, socket, socketState, processor, isMicManuallyMuted]);
 
   // Handle updates to instructions - only after settings have been applied
   useEffect(() => {
     if (previousInstructionsRef.current !== instructions && socket && socketState === 1 && settingsApplied) {
       sendSocketMessage(socket, {
-        type: "UpdateInstructions",
-        instructions: `${stsConfig.agent.think.instructions}\n${instructions}`,
+        type: "UpdatePrompt",
+        prompt: `${stsConfig.agent.think.instructions}\n${instructions}`,
       });
     }
     previousInstructionsRef.current = instructions;
@@ -493,8 +571,8 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   // Process incoming data from WebSocket
   useEffect(() => {
     if (typeof data === "string") {
-      const userRole = (data) => {
-        const userTranscript = data.content;
+      const userRole = (parsedData: any) => {
+        const userTranscript = parsedData.content;
 
         /**
          * When the user says something, add it to the conversation queue.
@@ -507,11 +585,11 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       /**
        * When the assistant/agent says something, add it to the conversation queue.
        */
-      const assistantRole = (data) => {
+      const assistantRole = (parsedData: any) => {
         // Always allow agent response to be processed regardless of sleep state
         // This ensures the agent's responses are always added to the queue and spoken
-        startSpeaking();
-        const assistantTranscript = data.content;
+        // startSpeaking(); // Removed: will be called conditionally in useEffect
+        const assistantTranscript = parsedData.content;
         addVoicebotMessage({ assistant: assistantTranscript });
         
         // Ensure we're not in waiting state when the agent is responding
@@ -531,8 +609,6 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           throw new Error("No data returned in JSON.");
         }
 
-        maybeRecordBehindTheScenesEvent(parsedData);
-
         // Check for settings applied message to enable audio processing
         if (parsedData.type === EventType.SETTINGS_APPLIED) {
           console.log("Settings applied successfully by Deepgram");
@@ -546,7 +622,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           // Update the last time the user spoke
           lastUserSpeakingTime.current = Date.now();
           
-          startListening();
+          if (status !== VoiceBotStatus.LISTENING) {
+            startListening();
+          }
           userRole(parsedData);
         }
 
@@ -554,7 +632,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
          * If it's an agent message.
          */
         if (parsedData.role === "assistant") {
-          if (status !== VoiceBotStatus.SLEEPING) {
+          if (status !== VoiceBotStatus.SPEAKING) {
             startSpeaking();
           }
           assistantRole(parsedData);
@@ -564,7 +642,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
          * The agent has finished speaking so we reset the sleep timer.
          */
         if (parsedData.type === EventType.AGENT_AUDIO_DONE) {
-          startListening();
+          if (status !== VoiceBotStatus.LISTENING) {
+            startListening();
+          }
         }
         if (parsedData.type === EventType.USER_STARTED_SPEAKING) {
           // Update the last time the user spoke
@@ -572,7 +652,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           console.log("User speaking detected, resetting inactivity timer");
           
           isWaitingForUserVoiceAfterSleep.current = false;
-          startListening();
+          if (status !== VoiceBotStatus.LISTENING) {
+            startListening();
+          }
           clearAudioBuffer();
         }
         if (parsedData.type === EventType.AGENT_STARTED_SPEAKING) {
@@ -604,48 +686,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, status]);
-
-  // Handle behind the scenes events
-  const maybeRecordBehindTheScenesEvent = (serverMsg) => {
-    switch (serverMsg.type) {
-      case EventType.SETTINGS_APPLIED:
-        addBehindTheScenesEvent({
-          type: EventType.SETTINGS_APPLIED,
-        });
-        break;
-      case EventType.USER_STARTED_SPEAKING:
-        if (status === VoiceBotStatus.SPEAKING) {
-          addBehindTheScenesEvent({
-            type: "Interruption",
-          });
-        }
-        addBehindTheScenesEvent({
-          type: EventType.USER_STARTED_SPEAKING,
-        });
-        break;
-      case EventType.AGENT_STARTED_SPEAKING:
-        addBehindTheScenesEvent({
-          type: EventType.AGENT_STARTED_SPEAKING,
-        });
-        break;
-      case EventType.CONVERSATION_TEXT: {
-        const role = serverMsg.role;
-        const content = serverMsg.content;
-        addBehindTheScenesEvent({
-          type: EventType.CONVERSATION_TEXT,
-          role: role,
-          content: content,
-        });
-        break;
-      }
-      case EventType.END_OF_THOUGHT:
-        addBehindTheScenesEvent({
-          type: EventType.END_OF_THOUGHT,
-        });
-        break;
-    }
-  };
+  }, [data, status, functionsMap, socket]);
 
   // Request microphone permissions
   const requestMicrophonePermission = async () => {
@@ -697,136 +738,6 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
       }
     };
   }, [isInitialized, isDisconnected]);
-  
-  // Clean up resources and navigate
-  const cleanupAndNavigate = useCallback((destinationUrl: string) => {
-    try {
-      // Deduct coins and clean up
-      const minutesLeft = Math.floor(time/60);
-      const coinCost = Math.max(0, interviewLength - minutesLeft);
-      console.log(`Leaving interview... Deducting ${coinCost} coins`);
-      
-      // Make synchronous XHR request to deduct coins
-     
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/user/post', false); // synchronous
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(JSON.stringify({ userId, coinCount, coinCost }));
-      
-      // Manually clean up resources (without the page reload)
-      // Clear all timers
-      if (userInactivityTimer.current) {
-        clearInterval(userInactivityTimer.current);
-        userInactivityTimer.current = null;
-      }
-      
-      if (keepAliveTimer.current) {
-        clearInterval(keepAliveTimer.current);
-        keepAliveTimer.current = null;
-      }
-      
-      // Stop the microphone completely
-      if (stopMicrophone) {
-        stopMicrophone();
-      }
-      
-      // Disconnect from Deepgram websocket
-      if (disconnectFromDeepgram) {
-        disconnectFromDeepgram();
-      }
-      
-      // Clear all scheduled audio playback sources
-      scheduledAudioSources.current.forEach(source => {
-        if (source) {
-          try {
-            source.stop();
-            source.disconnect();
-          } catch (err) {
-            // Ignore errors during cleanup
-          }
-        }
-      });
-      
-      // Suspend audio context if possible
-      if (audioContext.current && audioContext.current.state !== 'closed') {
-        try {
-          audioContext.current.suspend();
-        } catch (err) {
-          // Ignore errors during cleanup
-        }
-      }
-      
-      // Then navigate
-      window.location.href = destinationUrl;
-    } catch (error) {
-      console.error("Error during navigation cleanup:", error);
-      // Continue with navigation even if there's an error
-      window.location.href = destinationUrl;
-    }
-  }, [time, interviewLength, userId, coinCount, stopMicrophone, disconnectFromDeepgram]);
-  
-  // Add click listeners to all navigation elements (links and buttons)
-  useEffect(() => {
-    if (!isInitialized) return;
-    
-    // Function to handle navigation (both links and the Quit button)
-    const handleNavigation = (e: MouseEvent) => {
-      // Check if clicked element is a link in navbar or the quit button
-      const target = e.target as HTMLElement;
-      const link = target.closest('a');
-      const quitButton = target.closest('button');
-      
-      // Handle if it's a navigation link
-      if (link && link.closest('nav')) {
-        // Prevent the default navigation
-        e.preventDefault();
-        
-        // Get the destination
-        const destinationUrl = link.getAttribute('href') || '/';
-        
-        // Skip confirmation if going to profile page via standard navbar (match quit button behavior)
-        if (destinationUrl.includes(`/u/${userId}`)) {
-          cleanupAndNavigate(destinationUrl);
-          return;
-        }
-        
-        // For other nav destinations, show a confirmation
-        const confirmed = window.confirm("You're in the middle of an interview. Are you sure you want to leave?");
-        if (confirmed) {
-          cleanupAndNavigate(destinationUrl);
-        }
-      }
-      
-      // If it's the Quit button, we'll let its normal click handler run
-      // but we're capturing the event to ensure our cleanup happens before any navigation
-      if (quitButton && quitButton.textContent?.includes('Quit Interview')) {
-        // For the Quit button, we should handle cleanup before the button's click handler
-        // This ensures cleanup happens before navigation
-        e.preventDefault();
-        
-        cleanupAndNavigate(`/u/${userId}`);
-      }
-    };
-    
-    // Add click listener to the document to catch all navigations
-    document.addEventListener('click', handleNavigation, true);
-    
-    // Also keep the beforeunload handler for refresh/close
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "You're in the middle of an interview. Are you sure you want to leave?";
-      
-      // Don't try to call handleQuit here - it won't complete before the page unloads
-      return e.returnValue;
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      document.removeEventListener('click', handleNavigation, true);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [isInitialized, time, interviewLength, userId, coinCount]);
   
   // Start a keep-alive timer to maintain agent audio capabilities
   useEffect(() => {
@@ -884,9 +795,12 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const sendSystemMessage = (text: string) => {
     if (isInitialized && text.trim() && socket && socket.readyState === WebSocket.OPEN) {
       try {
+        const minutesLeft = Math.floor(time / 60);
+        console.log(minutesLeft + " minutes left");
+
         sendSocketMessage(socket, {
-          type: "UpdateInstructions",
-          instructions: `${stsConfig.agent.think.instructions}\n${text}`
+          type: "UpdatePrompt",
+          prompt: `${fullSystemPrompt}\n\nThere are ${minutesLeft} minutes left in the interview. \n\n${text}`
         });
       } catch (error) {
         console.error("Failed to send system message:", error);
@@ -895,7 +809,14 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   };
 
   // Start over the interview
-  const handleDisconnect = (refresh: boolean=true) => {
+  const handleDisconnect = useCallback((refresh: boolean = true) => {
+    if (isInitialized) {
+      const confirmed = window.confirm("Are you sure you want to start over? This will end the current interview and reset its state.");
+      if (!confirmed) {
+        return; // User cancelled the action
+      }
+    }
+
     console.log("Disconnecting and starting over...");
     
     // Clear all timers
@@ -951,16 +872,18 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     // Reload the page to ensure a completely fresh start
     // This is the most reliable way to reset browser audio state
     if(refresh) window.location.reload();
-  };
+  }, [time, interviewLength, userId, coinCount, stopMicrophone, disconnectFromDeepgram]);
 
   // Toggle microphone (mute/unmute)
   const toggleMicrophone = () => {
     if (processor && processor.onaudioprocess) {
       // Muting microphone
       processor.onaudioprocess = null;
+      setIsMicManuallyMuted(true);
     } else if (processor && socket) {
       // Unmuting microphone
       processor.onaudioprocess = sendMicToSocket(socket);
+      setIsMicManuallyMuted(false);
       
       // When re-enabling the microphone, ensure we're not in sleep mode
       // and ensure we're not waiting for user voice
@@ -968,27 +891,22 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
         startListening(true); // Force start listening mode
       }
       
-      // Reset the waiting state to ensure audio works
-      isWaitingForUserVoiceAfterSleep.current = false;
+      if (isWaitingForUserVoiceAfterSleep.current) { // Guard against null ref
+        isWaitingForUserVoiceAfterSleep.current = false;
+      }
       console.log("Microphone enabled - resetting speech recognition state");
     }
-  };
-
-  // Quit interview by using our cleanup and navigation function
-  const handleQuit = () => {
-    // Use the same cleanup function that's used by the click handler
-    cleanupAndNavigate(`/u/${userId}`);
   };
 
   // Handle code editor outputs
   const updateCodeOutput = (output: string, code: string) => {
     console.log("Code output: " + output);
-    sendSystemMessage(`Candidate ran the code. \nOutput: ${output}\n\nCandidate's code: ${code}`);
+    sendSystemMessage(`\n\nCandidate ran the code. \nOutput: ${output}\n\nCandidate's code: ${code}`);
   };
 
   const updateCode = (code: string) => {
     console.log("Code: " + code);
-    sendSystemMessage(`Current candidate code: ${code}`);
+    sendSystemMessage(`\n\nCurrent candidate code: ${code}`);
   };
 
   // Handle voice interaction
@@ -1012,6 +930,65 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
   // Determine if agent is speaking
   const isSpeaking = status === VoiceBotStatus.SPEAKING;
+
+  // For Next.js client-side navigations (e.g., NavBar links)
+  // This will be called by the effect when pathname changes.
+  const handleRouteChangeStart = useCallback((url: string, currentPath: string) => {
+    console.log(`handleRouteChangeStart called. Attempted navigation to: ${url}, current path was: ${currentPath}`);
+    if (isInitialized && url !== currentPath) {
+      // This confirmation happens *after* the navigation has started if triggered by a Link.
+      // It serves to confirm cleanup or attempt to revert navigation.
+      const confirmed = window.confirm("You are leaving the interview. Confirm to save progress and clean up?");
+      if (confirmed) {
+        console.log("User confirmed cleanup after route change.");
+        cleanupAndNavigate(url, true); 
+      } else {
+        console.log("User cancelled cleanup after route change. Attempting to navigate back.");
+        router.push(currentPath); // Attempt to navigate back to the original path
+      }
+    }
+  }, [isInitialized, cleanupAndNavigate, router]);
+
+  // Handle user attempting to leave the page
+  useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
+
+    // For browser-level navigations (refresh, close, direct URL change)
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      console.log("handleBeforeUnload triggered");
+      const confirmationMessage = 'Are you sure you want to leave? Your interview progress may be lost, and related actions will be taken.';
+      event.preventDefault();
+      event.returnValue = confirmationMessage;
+      return confirmationMessage;
+    };
+
+    // Fallback cleanup for when the page is actually being hidden
+    const handlePageHide = () => {
+      if (isInitialized) {
+        console.log("handlePageHide triggered, attempting cleanup via cleanupAndNavigate (skipNavigation=true)");
+        cleanupAndNavigate("dummy_url_not_used_for_pagehide", true);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+
+    // Store the previous pathname to detect changes
+    if (previousPathnameRef.current !== pathname) {
+      // Pathname has changed, meaning a client-side navigation likely occurred.
+      // Call handleRouteChangeStart with the new pathname (url) and the previous one.
+      console.log(`Pathname changed from ${previousPathnameRef.current} to ${pathname}. Triggering handleRouteChangeStart.`);
+      handleRouteChangeStart(pathname, previousPathnameRef.current);
+      previousPathnameRef.current = pathname; // Update ref for next render
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [isInitialized, cleanupAndNavigate, router, pathname, handleRouteChangeStart]); // router is likely stable, pathname is key for client nav detection
 
   return (
     <div className="flex flex-col call-view h-full">
@@ -1068,7 +1045,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
             ) : (
               <>
                 <Button
-                  onClick={handleDisconnect}
+                  onClick={() => handleDisconnect()}
                   className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
                 >
                   Start Over
@@ -1166,7 +1143,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
               ) : (
                 <>
                   {/* <Button
-                    onClick={handleDisconnect}
+                    onClick={() => handleDisconnect()}
                     className="w-[150px] bg-red-500 text-white font-semibold hover:cursor-pointer"
                   >
                     Start Over

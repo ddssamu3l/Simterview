@@ -7,7 +7,7 @@ import { cn, formatISODate } from '@/lib/utils';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const InterviewCard = ({ id, name, length, difficulty, description, createdAt, questions, type, passed }: InterviewCardProps) => {
   return (
-    <div className="card-border hover:bg-dark-300 max-w-86 max-sm:w-full min-h-64 cursor-pointer transition-colors duration-200">
+    <div className="card-border hover:bg-dark-300 min-w-86 max-w-86 max-sm:min-w-full max-sm:w-full min-h-64 cursor-pointer transition-colors duration-200">
       <Link href={passed!==undefined? `/feedback/${id}` : `/live-interview/${id}`}>
         <div className="card-interview border-b py-4 px-4">
           <div className="flex">
