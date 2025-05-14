@@ -80,6 +80,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
   const [interviewLength, setInterviewLength] = useState(0);
   const [interviewQuestions, setInterviewQuestions] = useState([""]);
   const [interviewSolution, setInterviewSolution] = useState("");
+  const [fullSystemPrompt, setFullSystemPrompt] = useState("");
   const [lastCodeOutput, setLastCodeOutput] = useState<string>('');
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
 
