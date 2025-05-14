@@ -291,8 +291,8 @@ export const App = ({
   useEffect(() => {
     if (previousInstructions !== instructions && socket && socketState === 1) {
       sendSocketMessage(socket, {
-        type: "UpdateInstructions",
-        instructions: `${defaultStsConfig.agent.think.instructions}\n${instructions}`,
+        type: "UpdatePrompt",
+        prompt: `${defaultStsConfig.agent.think.instructions}\n${instructions}`,
       });
     }
   }, [defaultStsConfig, previousInstructions, instructions, socket, socketState]);
