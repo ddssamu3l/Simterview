@@ -216,12 +216,12 @@ export async function generateCustomInterview(type: string, role: string, length
         newInterview.questions = [problemData.description]; // Ensure it's an array as expected by the original code
         
         // Add solution if available, or use an empty string as fallback
-        if (problemData.solution) {
-          newInterview.solution = problemData.solution;
-          console.log(` Solution found, length: ${newInterview.solution.length} characters`);
+        if (problemData.editorial) {
+          newInterview.editorial = problemData.editorial;
+          console.log(` Solution found, length: ${newInterview.editorial.length} characters`);
         } else {
           console.log(` No solution found in database, using empty string`);
-          newInterview.solution = "";
+          newInterview.editorial = "";
         }
         
         // Add additional metadata that might be useful
