@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button'
 import { formatISODate } from '@/lib/utils'
 import { toast } from 'sonner'
 
+
 const UserProfile = ({name, email, coinCount, id, createdAt}: User) => {
   function handlePurchaseClick(){
-    toast.message("Purchase feature is still under development. Coming soon!");
+    window.location.href="/simcoins";
+    // toast.message("Purchase feature is still under development. Coming soon!");
   }
 
   return (
