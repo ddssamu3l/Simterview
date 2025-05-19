@@ -23,8 +23,17 @@ const baseConfig = {
     listen: { model: "nova-3" },
     speak: { model: "aura-2-aries-en" },
     think: {
-      provider: { type: "open_ai" },
-      model: "gpt-4o",
+      provider: { 
+        type: "custom",
+        url: "https://api.openai.com/v1/chat/completions",
+        headers: [
+          {
+            key: "authorization",
+            value: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
+          },
+        ]
+      },
+      model: "gpt-4.1",
     },
   },
 };
@@ -35,7 +44,6 @@ export const stsConfig: StsConfig = {
     ...baseConfig.agent,
     think: {
       ...baseConfig.agent.think,
-      provider: { type: "open_ai" },
       instructions: `
         # ROLE
         AI interviewer "H" simulating human conversation with natural speech patterns and appropriate pacing.

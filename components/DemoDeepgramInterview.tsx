@@ -264,7 +264,8 @@ function DemoDeepgramInterview() {
             ...stsConfig.agent,
             think: {
               ...stsConfig.agent.think,
-              instructions: demoSystemPrompt, // Use the new demo prompt
+              instructions: demoSystemPrompt,
+              model: "gpt-4.1-mini",
             },
           },
           context: {

@@ -347,7 +347,6 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
     if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
         // Modify the default STS config to include interview details
-        console.log("Full system prompt: " + fullSystemPrompt);
         const interviewStsConfig = {
           ...stsConfig,
           agent: {
