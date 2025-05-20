@@ -46,6 +46,14 @@ export enum EventType {
   END_OF_THOUGHT = "EndOfThought",
   /** Agent is requesting to call a function */
   FUNCTION_CALL_REQUEST = "FunctionCallRequest",
+  /** Confirmation that a prompt update has been applied */
+  PROMPT_UPDATED = "PromptUpdated",
+  /** Confirmation that a speak configuration update has been applied */
+  SPEAK_UPDATED = "SpeakUpdated",
+  /** Non-fatal errors or warnings from the agent */
+  WARNING = "Warning",
+  /** Notification that the agent is thinking */
+  AGENT_THINKING = "AgentThinking",
 }
 
 /**
@@ -204,7 +212,7 @@ export interface VoiceBotContext extends VoiceBotState {
   /** Add a behind-the-scenes event for debugging */
   addBehindTheScenesEvent: (data: BehindTheScenesEvent) => void;
   /** Ref tracking whether the bot is waiting for user voice after sleep */
-  isWaitingForUserVoiceAfterSleep: React.Ref<boolean>;
+  isWaitingForUserVoiceAfterSleep: React.MutableRefObject<boolean>;
   /** Transition to the speaking state */
   startSpeaking: (wakeFromSleep?: boolean) => void;
   /** Transition to the listening state */
@@ -267,15 +275,47 @@ interface Props {
  * @returns {React.ReactNode} The provider component with children
  */
 export function VoiceBotProvider({ children }: Props) {
-  // State management with reducer
   const [state, dispatch] = useReducer(voiceBotReducer, initialState);
-  
-  /**
-   * After waking from sleep, the bot must wait for the user to speak before playing audio.
-   * This prevents unintended audio playback and conversation queue logging if the user rapidly toggles between
-   * sleep and wake states in the middle of a bot response.
-   */
-  const isWaitingForUserVoiceAfterSleep = useRef(false);
+  const isWaitingForUserVoiceAfterSleep = useRef<boolean>(false);
+  const sleepInterval = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  const addVoicebotMessage = useCallback((newMessage: VoiceBotMessage) => {
+    dispatch({ type: ADD_MESSAGE, payload: newMessage });
+  }, [dispatch]);
+
+  const addBehindTheScenesEvent = useCallback((event: BehindTheScenesEvent) => {
+    dispatch({ type: ADD_BEHIND_SCENES_EVENT, payload: event });
+  }, [dispatch]);
+
+  const startSpeaking = useCallback((wakeFromSleep = false) => {
+    if (wakeFromSleep) {
+      isWaitingForUserVoiceAfterSleep.current = true;
+    }
+    dispatch({ type: START_SPEAKING });
+  }, [dispatch]);
+
+  const startListening = useCallback((wakeFromSleep = false) => {
+    if (wakeFromSleep) {
+      isWaitingForUserVoiceAfterSleep.current = false;
+    }
+    dispatch({ type: START_LISTENING });
+  }, [dispatch]);
+
+  const startSleeping = useCallback(() => {
+    dispatch({ type: START_SLEEPING });
+  }, [dispatch]);
+
+  const toggleSleep = useCallback(() => {
+    if (state.status === VoiceBotStatus.SLEEPING) {
+      startListening(true);
+    } else {
+      startSleeping();
+    }
+  }, [state.status, startListening, startSleeping]);
+
+  const setAttachParamsToCopyUrl = useCallback((attachParamsToCopyUrl: boolean) => {
+    dispatch({ type: SET_PARAMS_ON_COPY_URL, payload: attachParamsToCopyUrl });
+  }, [dispatch]);
 
   /**
    * Set up a timer to increment the sleep timer every second.
@@ -298,72 +338,6 @@ export function VoiceBotProvider({ children }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.sleepTimer]);
-
-  /**
-   * Add a new message to the conversation.
-   * 
-   * @param {VoiceBotMessage} newMessage - The message to add
-   */
-  const addVoicebotMessage = (newMessage: VoiceBotMessage) => {
-    dispatch({ type: ADD_MESSAGE, payload: newMessage });
-  };
-
-  /**
-   * Add a behind-the-scenes event for debugging and analysis.
-   * 
-   * @param {BehindTheScenesEvent} event - The event to add
-   */
-  const addBehindTheScenesEvent = (event: BehindTheScenesEvent) => {
-    dispatch({ type: ADD_BEHIND_SCENES_EVENT, payload: event });
-  };
-
-  /**
-   * Transition to speaking state.
-   * 
-   * @param {boolean} wakeFromSleep - Whether to force wake from sleep mode
-   */
-  const startSpeaking = useCallback(
-    (wakeFromSleep = false) => {
-      if (wakeFromSleep || state.status !== VoiceBotStatus.SLEEPING) {
-        dispatch({ type: START_SPEAKING });
-      }
-    },
-    [state.status],
-  );
-
-  /**
-   * Transition to listening state.
-   * 
-   * @param {boolean} wakeFromSleep - Whether to force wake from sleep mode
-   */
-  const startListening = useCallback(
-    (wakeFromSleep = false) => {
-      if (wakeFromSleep || state.status !== VoiceBotStatus.SLEEPING) {
-        dispatch({ type: START_LISTENING });
-      }
-    },
-    [state.status],
-  );
-
-  /**
-   * Transition to sleeping state.
-   * Sets the waiting flag to prevent audio playback until user speaks.
-   */
-  const startSleeping = () => {
-    isWaitingForUserVoiceAfterSleep.current = true;
-    dispatch({ type: START_SLEEPING });
-  };
-
-  /**
-   * Toggle between sleeping and listening states.
-   */
-  const toggleSleep = useCallback(() => {
-    if (state.status === VoiceBotStatus.SLEEPING) {
-      startListening(true);
-    } else {
-      startSleeping();
-    }
-  }, [state.status, startListening]);
 
   /**
    * Determine if a message represents the end of a turn in the conversation.
@@ -402,35 +376,22 @@ export function VoiceBotProvider({ children }: Props) {
   }, [state.messages]);
 
   /**
-   * Update the setting for attaching parameters to the URL when copying.
-   * 
-   * @param {boolean} attachParamsToCopyUrl - Whether to attach parameters
-   */
-  const setAttachParamsToCopyUrl = useCallback((attachParamsToCopyUrl: boolean) => {
-    dispatch({
-      type: SET_PARAMS_ON_COPY_URL,
-      payload: attachParamsToCopyUrl,
-    });
-  }, []);
-
-  /**
    * Memoized context value to prevent unnecessary re-renders.
    */
-  const contextValue = useMemo(
-    () => ({
+  const contextValue = useMemo(() => {
+    return {
       ...state,
-      isWaitingForUserVoiceAfterSleep,
-      displayOrder,
       addVoicebotMessage,
       addBehindTheScenesEvent,
+      isWaitingForUserVoiceAfterSleep,
       startSpeaking,
       startListening,
       startSleeping,
       toggleSleep,
+      displayOrder,
       setAttachParamsToCopyUrl,
-    }),
-    [state, startListening, startSpeaking, toggleSleep, setAttachParamsToCopyUrl, displayOrder],
-  );
+    };
+  }, [state, displayOrder, addVoicebotMessage, addBehindTheScenesEvent, startSpeaking, startListening, startSleeping, toggleSleep, setAttachParamsToCopyUrl]);
 
   return <VoiceBotContext.Provider value={contextValue}>{children}</VoiceBotContext.Provider>;
 }

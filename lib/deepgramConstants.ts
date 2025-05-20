@@ -16,27 +16,30 @@ const audioConfig: AudioConfig = {
   },
 };
 
+// Define baseConfig with minimal speak and think provider fields
 const baseConfig = {
-  type: "SettingsConfiguration",
+  type: "Settings",
   audio: audioConfig,
   agent: {
-    listen: { model: "nova-3" },
-    speak: { model: "aura-2-aries-en" },
+    listen: { provider: { type: "deepgram", model: "nova-3" } },
+    speak: {
+      provider: { type: "deepgram", model: "aura-2-thalia-en" }
+    },
     think: {
-      provider: { 
-        type: "custom",
-        url: "https://api.openai.com/v1/chat/completions",
-        headers: [
-          {
-            key: "authorization",
-            value: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
-          },
-        ]
+      provider: {
+        type: "open_ai",
+        model: "gpt-4.1-mini",
+        temperature: 0.7,
       },
-      model: "gpt-4.1",
+      endpoint: { 
+        url: "https://api.openai.com/v1/chat/completions",
+        headers: {
+          "authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+        }
+      }
     },
   },
-};
+} as const;
 
 export const stsConfig: StsConfig = {
   ...baseConfig,
@@ -44,7 +47,7 @@ export const stsConfig: StsConfig = {
     ...baseConfig.agent,
     think: {
       ...baseConfig.agent.think,
-      instructions: `
+      prompt: `
         # ROLE
         AI interviewer "H" simulating human conversation with natural speech patterns and appropriate pacing.
 
@@ -95,16 +98,7 @@ export const stsConfig: StsConfig = {
         },
       ],
     },
-  },
-  context: {
-    messages: [
-      {
-        content:
-          "Hi! I'm H, I'll be your interviewer today. How are you doing today?",
-        role: "assistant",
-      },
-    ],
-    replay: true,
+    greeting: "Hi! I'm H, I'll be your interviewer today. How are you doing?",
   },
 };
 
@@ -174,3 +168,4 @@ export const sharedOpenGraphMetadata = {
 };
 
 export const latencyMeasurementQueryParam = "latency-measurement";
+
