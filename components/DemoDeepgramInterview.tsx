@@ -17,7 +17,7 @@ import {
   VoiceBotStatus,
 } from "../context/VoiceBotContextProvider";
 import { createAudioBuffer, playAudioBuffer } from "../utils/audioUtils";
-import { sendSocketMessage, sendMicToSocket } from "@/utils/deepgramUtils";
+import { sendSocketMessage, sendMicToSocket, StsConfig, AgentConfigV1, ProviderBase, CustomProvider } from "@/utils/deepgramUtils";
 import { useStsQueryParams } from "@/hooks/UseStsQueryParams";
 import { stsConfig } from "@/lib/deepgramConstants";
 import { demoSystemPrompt } from "@/public";
@@ -62,12 +62,13 @@ function DemoDeepgramInterview() {
   const router = useRouter();
 
   // State
-  const [data, setData] = useState();
+  const [data, setData] = useState<any>();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isDisconnected, setIsDisconnected] = useState(false);
-  const [time, setTime] = useState(900);
+  const [time, setTime] = useState(1200);
   const [isBehavioral, setIsBehavioral] = useState(true);
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+  const [currentAgentThinkProvider, setCurrentAgentThinkProvider] = useState(stsConfig.agent?.think?.provider);
 
   // Refs
   const audioContext = useRef<AudioContext | null>(null);
@@ -83,12 +84,9 @@ function DemoDeepgramInterview() {
   const userInactivityTimer = useRef<NodeJS.Timeout | null>(null);
   const keepAliveTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Clean up resources and navigate
   const cleanupAndNavigate = useCallback(
     (destinationUrl: string) => {
       try {
-        // Manually clean up resources (without the page reload)
-        // Clear all timers
         if (userInactivityTimer.current) {
           clearInterval(userInactivityTimer.current);
           userInactivityTimer.current = null;
@@ -99,68 +97,45 @@ function DemoDeepgramInterview() {
           keepAliveTimer.current = null;
         }
 
-        // Stop the microphone completely
-        if (stopMicrophone) {
-          stopMicrophone();
-        }
+        if (stopMicrophone) stopMicrophone();
+        if (disconnectFromDeepgram) disconnectFromDeepgram();
 
-        // Disconnect from Deepgram websocket
-        if (disconnectFromDeepgram) {
-          disconnectFromDeepgram();
-        }
-
-        // Clear all scheduled audio playback sources
         scheduledAudioSources.current.forEach((source) => {
           if (source) {
-            try {
-              source.stop();
-              source.disconnect();
-            } catch (err) {
-              // Ignore errors during cleanup
-            }
+            try { source.stop(); source.disconnect(); } catch (err) { /* ignore */ }
           }
         });
+        scheduledAudioSources.current = [];
 
-        // Suspend audio context if possible
         if (audioContext.current && audioContext.current.state !== "closed") {
-          try {
-            audioContext.current.suspend();
-          } catch (err) {
-            // Ignore errors during cleanup
-          }
+          try { audioContext.current.suspend(); } catch (err) { /* ignore */ }
         }
-
-        // Then navigate
         window.location.href = destinationUrl;
       } catch (error) {
         console.error("Error during navigation cleanup:", error);
-        // Continue with navigation even if there's an error
         window.location.href = destinationUrl;
       }
     },
-    [time, stopMicrophone, disconnectFromDeepgram]
+    [stopMicrophone, disconnectFromDeepgram]
   );
 
-  // Quit interview by using our cleanup and navigation function
   const handleQuit = useCallback(() => {
     cleanupAndNavigate("/");
   }, [cleanupAndNavigate]);
 
-  // Initialize the audio context
   useEffect(() => {
     if (!audioContext.current) {
-      audioContext.current = new (window.AudioContext ||
-        (window as any).webkitAudioContext)({
+      audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)({
         latencyHint: "interactive",
         sampleRate: 24000,
       });
-      agentVoiceAnalyser.current = audioContext.current.createAnalyser();
-      agentVoiceAnalyser.current.fftSize = 2048;
-      agentVoiceAnalyser.current.smoothingTimeConstant = 0.96;
+      const newAnalyser = audioContext.current.createAnalyser();
+      newAnalyser.fftSize = 2048;
+      newAnalyser.smoothingTimeConstant = 0.96;
+      agentVoiceAnalyser.current = newAnalyser;
     }
   }, []);
 
-  // Timer mechanic
   useEffect(() => {
     if (!isInitialized || isDisconnected) return;
 
@@ -173,300 +148,158 @@ function DemoDeepgramInterview() {
       setTime((prev) => prev - 1);
     }, 1000);
 
-    // Only announce time remaining on specific intervals
-    if (time % 300 === 0 && time > 0) {
+    if (time > 0 && time % 300 === 0) {
       const minutesLeft = time / 60;
-      sendSystemMessage(minutesLeft + " minutes left.");
+      sendSystemMessageViaSettings(minutesLeft + " minutes left.");
       console.log(minutesLeft + " minutes left");
     }
 
     return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [time, isInitialized, isDisconnected]);
+  }, [time, isInitialized, isDisconnected, handleQuit]);
 
-  // Initialize microphone once on mount
   useEffect(() => {
     if (microphoneState === null) {
-      setupMicrophone().catch((error) => {
+      if (setupMicrophone) setupMicrophone().catch((error: any) => {
         console.error("Microphone setup failed:", error);
         if (error.name === "NotAllowedError") {
           setMicPermissionDenied(true);
         }
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setupMicrophone, microphoneState]);
 
-  // Update mic permission state when microphone state changes
   useEffect(() => {
     if (microphoneState === 1) {
-      // Microphone is ready, so permission is granted
       setMicPermissionDenied(false);
     } else if (microphoneState === null) {
-      // Check if permissions are already granted but not yet set up
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then(() => {
-          // Permissions already granted, but microphone not yet initialized
-          setMicPermissionDenied(false);
-          // Don't initialize here as that will happen in setupMicrophone
-        })
-        .catch((err) => {
-          if (err.name === "NotAllowedError") {
-            setMicPermissionDenied(true);
-          }
-        });
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => { setMicPermissionDenied(false); })
+        .catch((err) => { if (err.name === "NotAllowedError") setMicPermissionDenied(true); });
     }
   }, [microphoneState]);
 
-  // Wake lock for preventing device sleep
   useEffect(() => {
-    let wakeLock;
+    let wakeLock: any;
     const requestWakeLock = async () => {
       try {
-        if ("wakeLock" in navigator) {
-          wakeLock = await navigator.wakeLock.request("screen");
-        }
-      } catch (err) {
-        console.error(err);
-      }
+        if ("wakeLock" in navigator) wakeLock = await (navigator as any).wakeLock.request("screen");
+      } catch (err) { console.error(err); }
     };
-
-    if (isInitialized) {
-      requestWakeLock();
-    }
-
-    return () => {
-      if (wakeLock) {
-        wakeLock.release();
-      }
-    };
+    if (isInitialized) requestWakeLock();
+    return () => { if (wakeLock) wakeLock.release(); };
   }, [isInitialized]);
 
-  // Initialize Deepgram connection when microphone is ready
   useEffect(() => {
-    if (
-      microphoneState === 1 &&
-      socket &&
-      !isDisconnected &&
-      !manuallyDisconnected
-    ) {
+    if (microphoneState === 1 && socket && !isDisconnected && !manuallyDisconnected) {
       const onOpen = () => {
-        // System prompt for the demo
+        const initialSettings = JSON.parse(JSON.stringify(stsConfig));
+
+        if (initialSettings.agent && initialSettings.agent.think) {
+          initialSettings.agent.think.prompt = demoSystemPrompt;
+          initialSettings.agent.think.provider = {
+            ...(initialSettings.agent.think.provider || {}),
+             model: "gpt-4.1-mini"
+          };
+          setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
+        }
+        if (initialSettings.agent?.think?.functions) {
+          delete initialSettings.agent.think.functions;
+        }
+        if (initialSettings.context) {
+            initialSettings.greeting = "Hi there! I'm H, your AI recruiter for this quick demo. Nice to meet you!";
+            delete initialSettings.context;
+        }
         
-        if (stsConfig.context) {
-          delete stsConfig.context;
+        let combinedStsConfig = initialSettings;
+        if (applyParamsToConfig) {
+             combinedStsConfig = applyParamsToConfig(initialSettings);
         }
 
-        const interviewStsConfig = {
-          ...stsConfig,
-          agent: {
-            ...stsConfig.agent,
-            think: {
-              ...stsConfig.agent.think,
-              instructions: demoSystemPrompt,
-              model: "gpt-4.1-mini",
-            },
-          },
-          context: {
-            messages: [
-              {
-                content:
-                  "Hi there! I'm H, your AI recruiter for this quick demo. Nice to meet you!",
-                role: "assistant",
-              },
-            ],
-            replay: true,
-          },
-        };
-
-        // Remove functions for the demo instance
-        if (interviewStsConfig.agent?.think?.functions) {
-          delete interviewStsConfig.agent.think.functions;
-        }
-
-        const combinedStsConfig = applyParamsToConfig(interviewStsConfig);
-        // Send the configuration first
         sendSocketMessage(socket, combinedStsConfig);
 
-        // Wait for configuration to be received before starting the microphone
         setTimeout(() => {
-          console.log("Starting microphone after configuration sent");
-          startMicrophone();
-          startListening(true);
-        }, 300); // 300ms delay to ensure settings are processed
+          console.log("Starting microphone after configuration sent for demo");
+          if (startMicrophone) startMicrophone();
+          if (startListening) startListening(true);
+        }, 300);
       };
-
-      // Add event listener for WebSocket open event
       socket.addEventListener("open", onOpen);
-
       return () => {
-        if (socket) {
-          socket.removeEventListener("open", onOpen);
-        }
-        if (microphone && (microphone as any).ondataavailable) {
-          (microphone as any).ondataavailable = null;
-        }
+        if (socket) socket.removeEventListener("open", onOpen);
+        if (microphone && (microphone as any).ondataavailable) (microphone as any).ondataavailable = null;
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    microphoneState,
-    socket,
-    isDisconnected,
-    manuallyDisconnected,
-    applyParamsToConfig,
-    startMicrophone,
-    startListening,
+    microphoneState, socket, isDisconnected, manuallyDisconnected, 
+    applyParamsToConfig, startMicrophone, startListening, microphone,
   ]);
 
-  // Track configuration acknowledgment
   const [settingsApplied, setSettingsApplied] = useState(false);
 
-  // Connect processor to send audio data to Deepgram only after settings are applied
   useEffect(() => {
-    if (!microphone) return;
-    if (!socket) return;
-    if (!processor) return;
-    if (microphoneState !== 2) return;
-    if (socketState !== 1) return;
-
-    // Only connect the processor if settings have been applied or after a safety timeout
+    if (!microphone || !socket || !processor || microphoneState !== 2 || socketState !== 1) return;
     if (settingsApplied) {
-      console.log("Connecting audio processor after settings were applied");
+      console.log("Connecting audio processor after settings were applied for demo");
       processor.onaudioprocess = sendMicToSocket(socket);
     }
-  }, [
-    microphone,
-    socket,
-    microphoneState,
-    socketState,
-    processor,
-    settingsApplied,
-  ]);
+  }, [microphone, socket, microphoneState, socketState, processor, settingsApplied]);
 
-  // Handle sleep state - disable audio processing when sleeping
   useEffect(() => {
-    if (!processor || socket?.readyState !== 1) return;
+    if (!processor || !socket || socket.readyState !== 1) return;
     if (status === VoiceBotStatus.SLEEPING) {
       processor.onaudioprocess = null;
-      toast.message(
-        "Your interviewer fell asleep from your inactivity. Please re-connect your mic!"
-      );
+      toast.message("Your interviewer fell asleep from your inactivity. Please focus!");
     } else {
       processor.onaudioprocess = sendMicToSocket(socket);
     }
   }, [status, processor, socket]);
 
-  // Create analyzer for user voice
   useEffect(() => {
-    if (microphoneAudioContext && microphone) {
-      userVoiceAnalyser.current = microphoneAudioContext.createAnalyser();
-      userVoiceAnalyser.current.fftSize = 2048;
-      userVoiceAnalyser.current.smoothingTimeConstant = 0.96;
-      microphone.connect(userVoiceAnalyser.current);
+    if (microphoneAudioContext && microphone && userVoiceAnalyser.current === null) {
+      const newAnalyser = microphoneAudioContext.createAnalyser();
+      newAnalyser.fftSize = 2048;
+      newAnalyser.smoothingTimeConstant = 0.96;
+      microphone.connect(newAnalyser);
+      userVoiceAnalyser.current = newAnalyser;
     }
   }, [microphoneAudioContext, microphone]);
 
-  // Connect to Deepgram when microphone is ready
-  // Explicitly handle initialization sequence
-  // 1. First connect to Deepgram
-  // 2. Wait for socket to open and send config
-  // 3. Only after settings are applied, start the microphone
   useEffect(() => {
-    if (
-      !isDisconnected &&
-      !manuallyDisconnected &&
-      microphoneState === 1 &&
-      socketState === -1 &&
-      isInitialized
-    ) {
-      // This connects the socket, but microphone is started in the socket.onopen handler
-      connectToDeepgram();
+    if (!isDisconnected && !manuallyDisconnected && microphoneState === 1 && socketState === -1 && isInitialized) {
+      if (connectToDeepgram) connectToDeepgram();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    microphoneState,
-    socketState,
-    isInitialized,
-    isDisconnected,
-    manuallyDisconnected,
-    connectToDeepgram,
-  ]);
+  }, [microphoneState, socketState, isInitialized, isDisconnected, manuallyDisconnected, connectToDeepgram]);
 
-  // Audio buffering and playback
-  const bufferAudio = useCallback((data) => {
-    if (!audioContext.current) {
-      console.error("No audio context available for buffering");
-      return;
-    }
-
-    if (audioContext.current.state === "suspended") {
-      audioContext.current.resume().catch((err) => {
-        console.error("Failed to resume audio context:", err);
-      });
-    }
-
-    const audioBuffer = createAudioBuffer(audioContext.current, data);
-
-    if (!audioBuffer) {
-      console.error("Failed to create audio buffer from data");
-      return;
-    }
-
+  const bufferAudio = useCallback((audioData: ArrayBuffer) => {
+    if (!audioContext.current) { console.error("No audio context for buffering"); return; }
+    if (audioContext.current.state === 'suspended') audioContext.current.resume().catch(console.error);
+    const audioBufferInstance = createAudioBuffer(audioContext.current, audioData);
+    if (!audioBufferInstance) { console.error("Failed to create audio buffer"); return; }
     try {
-      const source = playAudioBuffer(
-        audioContext.current,
-        audioBuffer,
-        startTimeRef,
-        agentVoiceAnalyser.current
-      );
+      const source = playAudioBuffer(audioContext.current, audioBufferInstance, startTimeRef, agentVoiceAnalyser.current);
       scheduledAudioSources.current.push(source);
-    } catch (error) {
-      console.error("Error playing audio buffer:", error);
-    }
+    } catch (error) { console.error("Error playing audio buffer:", error); }
   }, []);
 
-  // Clear audio buffer
   const clearAudioBuffer = () => {
-    scheduledAudioSources.current.forEach((source) => {
-      if (source) {
-        try {
-          source.stop();
-        } catch (err) {
-          console.error("Error stopping audio source:", err);
-        }
-      }
-    });
+    scheduledAudioSources.current.forEach(source => { if (source) try { source.stop(); } catch (e) { console.error(e); } });
     scheduledAudioSources.current = [];
   };
 
-  // Handle WebSocket message events
-  const onMessage = useCallback(
-    async (event) => {
-      if (event.data instanceof ArrayBuffer) {
-        // Process audio data from the agent with less restrictive conditions
-        // Remove the isWaitingForUserVoiceAfterSleep check since it's preventing audio after sleep
-        if (settingsApplied) {
-          // Allow audio output even when waiting for user voice after sleep
-          bufferAudio(event.data); // Process the ArrayBuffer data to play the audio
-
-          // If we're processing audio, we should also ensure we're not in waiting state
-          if (isWaitingForUserVoiceAfterSleep.current) {
-            console.log("Audio received from agent - resetting wait state");
-            isWaitingForUserVoiceAfterSleep.current = false;
-          }
+  const onMessage = useCallback(async (event: MessageEvent) => {
+    if (event.data instanceof ArrayBuffer) {
+      if (settingsApplied) {
+        bufferAudio(event.data);
+        if (isWaitingForUserVoiceAfterSleep && isWaitingForUserVoiceAfterSleep.current) {
+          isWaitingForUserVoiceAfterSleep.current = false;
         }
-      } else {
-        console.log(event?.data);
-        // Handle other types of messages such as strings
-        setData(event.data);
       }
-    },
-    [bufferAudio, settingsApplied, isWaitingForUserVoiceAfterSleep]
-  );
+    } else {
+      console.log("Demo Raw message:", event?.data);
+      setData(event.data);
+    }
+  }, [bufferAudio, settingsApplied, isWaitingForUserVoiceAfterSleep]);
 
-  // Add listener for WebSocket messages
   useEffect(() => {
     if (socket) {
       socket.addEventListener("message", onMessage);
@@ -474,69 +307,42 @@ function DemoDeepgramInterview() {
     }
   }, [socket, onMessage]);
 
-  // Handle updates to voice model - only after settings have been applied
   useEffect(() => {
-    if (
-      previousVoiceRef.current &&
-      previousVoiceRef.current !== voice &&
-      socket &&
-      socketState === 1 &&
-      settingsApplied
-    ) {
+    if (previousVoiceRef.current !== voice && voice && socket && socketState === 1 && settingsApplied) {
       sendSocketMessage(socket, {
         type: "UpdateSpeak",
-        model: voice,
+        speak: { provider: { type: "deepgram", model: voice } }
       });
     }
     previousVoiceRef.current = voice;
   }, [voice, socket, socketState, settingsApplied]);
 
-  // Special handler for when agent wakes from sleep
   useEffect(() => {
-    if (
-      status === VoiceBotStatus.LISTENING &&
-      socket &&
-      socketState === 1 &&
-      processor
-    ) {
-      // If we've just transitioned back to listening state (e.g., after sleep)
-      if (audioContext.current && audioContext.current.state !== "running") {
-        audioContext.current.resume().catch((err) => {
-          console.error("Failed to resume audio context after wake:", err);
-        });
-      }
-
-      // Ensure the audio processor is connected
-      if (!processor.onaudioprocess) {
-        console.log("Reconnecting audio processor after state change");
-        processor.onaudioprocess = sendMicToSocket(socket);
-      }
+    if (status === VoiceBotStatus.LISTENING && socket && socketState === 1 && processor) {
+      if (audioContext.current && audioContext.current.state !== 'running') audioContext.current.resume().catch(console.error);
+      if (!processor.onaudioprocess) processor.onaudioprocess = sendMicToSocket(socket);
     }
   }, [status, socket, socketState, processor]);
 
-  // Handle updates to instructions - only after settings have been applied
   useEffect(() => {
-    if (
-      previousInstructionsRef.current !== instructions &&
-      socket &&
-      socketState === 1 &&
-      settingsApplied
-    ) {
-      sendSocketMessage(socket, {
-        type: "UpdatePrompt",
-        prompt: `${stsConfig.agent.think.instructions}\n${instructions}`,
-      });
+    if (previousInstructionsRef.current !== instructions && instructions && socket && socketState === 1 && settingsApplied) {
+        console.log("Updating demo prompt due to instructions change (from query params) using UpdatePrompt.");
+        const newPromptContent = `${demoSystemPrompt}\n${instructions}`;
+
+        sendSocketMessage(socket, {
+            type: "UpdatePrompt",
+            prompt: newPromptContent,
+        });
     }
     previousInstructionsRef.current = instructions;
   }, [
     instructions,
     socket,
     socketState,
-    stsConfig.agent.think.instructions,
     settingsApplied,
+    demoSystemPrompt 
   ]);
 
-  // Process incoming data from WebSocket
   useEffect(() => {
     if (typeof data === "string") {
       const userRole = (data) => {
@@ -825,20 +631,24 @@ function DemoDeepgramInterview() {
   };
 
   // Send a system message TODO find a better way than just updating systems message
-  const sendSystemMessage = (text: string) => {
+  const sendSystemMessageViaSettings = (text: string) => {
     if (
       isInitialized &&
       text.trim() &&
       socket &&
       socket.readyState === WebSocket.OPEN
+      // currentAgentThinkProvider is not strictly needed if we're just updating the prompt
+      // as the UpdatePrompt message doesn't target a specific provider, but the agent's overall prompt.
     ) {
       try {
+        const updatedPrompt = `${demoSystemPrompt}\n\n${text}`;
+        
         sendSocketMessage(socket, {
           type: "UpdatePrompt",
-          prompt: `${stsConfig.agent.think.instructions}\n${text}`,
+          prompt: updatedPrompt,
         });
       } catch (error) {
-        console.error("Failed to send system message:", error);
+        console.error("Failed to send UpdatePrompt message:", error);
       }
     }
   };

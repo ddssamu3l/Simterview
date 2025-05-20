@@ -75,26 +75,40 @@ export const useStsQueryParams = () => {
    */
   const applyParamsToConfig = useCallback(
     (config: StsConfig) => {
-      const { voice, instructions, provider, model, temp, rep_penalty } = params;
-      return {
-        ...config,
-        agent: {
-          ...config.agent,
-          think: {
-            ...config.agent.think,
-            ...(provider && model && { provider: { type: provider }, model }),
-            ...(instructions && {
-              instructions: `${config.agent.think.instructions}\n${instructions}`,
-            }),
-          },
-          speak: {
-            ...config.agent.speak,
-            ...(voice && { model: voice }),
-            ...(temp && { temp: parseFloat(temp) }),
-            ...(rep_penalty && { rep_penalty: parseFloat(rep_penalty) }),
-          },
-        },
-      };
+      const { voice, instructions, provider, model } = params;
+      
+      // Start with a deep copy of the config to avoid unintended mutations if config is used elsewhere
+      const newConfig = JSON.parse(JSON.stringify(config));
+
+      // Apply think provider and model from URL if both are present
+      if (provider && model && newConfig.agent && newConfig.agent.think) {
+        newConfig.agent.think.provider = { 
+          type: provider, 
+          model: model 
+        };
+      }
+
+      // Apply instructions (to prompt) from URL if present
+      if (instructions && newConfig.agent && newConfig.agent.think) {
+        // Ensure prompt exists before appending. If not, initialize it.
+        if (!newConfig.agent.think.prompt) {
+          newConfig.agent.think.prompt = instructions;
+        } else {
+          newConfig.agent.think.prompt = `${newConfig.agent.think.prompt}\\n${instructions}`;
+        }
+      }
+
+      // Apply voice (to speak.provider.model) from URL if present
+      if (voice && newConfig.agent && newConfig.agent.speak && newConfig.agent.speak.provider) {
+        newConfig.agent.speak.provider.model = voice;
+      }
+      
+      // Note: 'temp' and 'rep_penalty' were removed as they are not standard 
+      // for the default 'deepgram' speak provider in V1.
+      // If you use other TTS providers via URL params that support these, 
+      // this section would need to be conditional based on the provider type.
+
+      return newConfig;
     },
     [params],
   );
