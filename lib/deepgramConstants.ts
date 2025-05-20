@@ -34,7 +34,7 @@ const baseConfig = {
       endpoint: { 
         url: "https://api.openai.com/v1/chat/completions",
         headers: {
-          "authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+          "authorization": `Bearer ${process.env.OPENAI_API_KEY}`
         }
       }
     },
