@@ -83,7 +83,7 @@ export const useStsQueryParams = () => {
       const greeting = greetingMessages[Math.floor(Math.random() * greetingMessages.length)];
 
       // pick a random greeting from the list
-      if (greeting && newConfig.agent && newConfig.agent.greeting) {
+      if (greeting && newConfig.agent) {
         newConfig.agent.greeting = greeting;
       }
 

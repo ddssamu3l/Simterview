@@ -205,14 +205,11 @@ function DemoDeepgramInterview() {
         if (initialSettings.agent?.think?.functions) {
           delete initialSettings.agent.think.functions;
         }
-        if (initialSettings.context) {
-            initialSettings.greeting = "Hi there! I'm H, your AI recruiter for this quick demo. Nice to meet you!";
-            delete initialSettings.context;
-        }
         
         let combinedStsConfig = initialSettings;
         if (applyParamsToConfig) {
-             combinedStsConfig = applyParamsToConfig(initialSettings);
+          combinedStsConfig = applyParamsToConfig(initialSettings);
+          combinedStsConfig.agent.greeting = "Hi there! I'm H, your AI recruiter for this quick demo. Nice to meet you!";
         }
 
         sendSocketMessage(socket, combinedStsConfig);
