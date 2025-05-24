@@ -169,3 +169,21 @@ export const sharedOpenGraphMetadata = {
 
 export const latencyMeasurementQueryParam = "latency-measurement";
 
+export const greetingMessages = [
+  "Hey, how's it going?",
+  "Welcome back!",
+  "Howdy?",
+  "Hello! can you hear me through your speakers?",
+  "Hey there, welcome back!",
+  "How's it going? Good to see you.",
+  "Hey, welcome back!",
+  "Hi! How are you doing today?",
+  "Hey, what's up?",
+  "Hey. Good to see you",
+  "Hi! Great to have you back today.",
+  "Hey, welcome back! How are you feeling?",
+  "How are things going?",
+  "Hey! How's it going today?",
+  "Hey there, how are you?",
+];
+

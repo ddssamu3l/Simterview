@@ -231,7 +231,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
           if (interviewDetails.data.editorial) { setInterviewEditorial(interviewDetails.data.editorial); }
           setInterviewReady(true);
           setTime(interviewDetails.data.length * 60);
-          const behavioral = interviewDetails.data.type === "behavioral";
+          const behavioral = interviewDetails.data.type === "Behavioral" || interviewDetails.data.type === "behavioral";
           setIsBehavioral(behavioral);
 
           const basePrompt = behavioral ? behavioralSystemPrompt : technicalSystemPrompt;
@@ -329,7 +329,9 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
 
         if (initialSettings.agent && initialSettings.agent.think) {
           initialSettings.agent.think.prompt = fullSystemPrompt;
+          console.log("initialSettings.agent.think.prompt", initialSettings.agent.think.prompt);
           // Model selection based on interview type
+          // trained model: ft:gpt-4.1-2025-04-14:rainsong:technical2:BaRmqRor
           initialSettings.agent.think.provider.model = isBehavioral ? "gpt-4.1-mini" : "gpt-4.1"; 
            // Store the potentially modified provider for later use in prompt updates
            setCurrentAgentThinkProvider(initialSettings.agent.think.provider);
@@ -343,7 +345,7 @@ function DeepgramInterview({ username, userId, interviewId, coinCount }: Deepgra
         if (applyParamsToConfig) { // Check if hook and function exist
             // This function needs to be V1 compatible if it directly mutates the config
             // e.g., changing combinedStsConfig.agent.think.prompt or combinedStsConfig.agent.speak.provider.model
-             combinedStsConfig = applyParamsToConfig(initialSettings);
+            combinedStsConfig = applyParamsToConfig(initialSettings);
         }
         sendSocketMessage(socket, combinedStsConfig);
         

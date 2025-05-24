@@ -1,4 +1,4 @@
-import { defaultVoice } from "@/lib/deepgramConstants";
+import { defaultVoice, greetingMessages } from "@/lib/deepgramConstants";
 import type { StsConfig } from "@/utils/deepgramUtils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -79,6 +79,13 @@ export const useStsQueryParams = () => {
       
       // Start with a deep copy of the config to avoid unintended mutations if config is used elsewhere
       const newConfig = JSON.parse(JSON.stringify(config));
+
+      const greeting = greetingMessages[Math.floor(Math.random() * greetingMessages.length)];
+
+      // pick a random greeting from the list
+      if (greeting && newConfig.agent && newConfig.agent.greeting) {
+        newConfig.agent.greeting = greeting;
+      }
 
       // Apply think provider and model from URL if both are present
       if (provider && model && newConfig.agent && newConfig.agent.think) {

@@ -1,89 +1,4 @@
-import { type AudioConfig, type StsConfig, type Voice } from "../utils/deepgramUtils";
-
-const audioConfig: AudioConfig = {
-  input: {
-    encoding: "linear16",
-    sample_rate: 16000,
-  },
-  output: {
-    encoding: "linear16",
-    sample_rate: 24000,
-    container: "none",
-  },
-};
-
-const baseConfig = {
-  type: "SettingsConfiguration",
-  audio: audioConfig,
-  agent: {
-    listen: { model: "nova-3" },
-    speak: { model: "aura-2-aries-en" },
-    think: {
-      provider: { type: "open_ai" },
-      model: "gpt-4o",
-    },
-  },
-};
-
-export const stsConfig: StsConfig = {
-  ...baseConfig,
-  agent: {
-    ...baseConfig.agent,
-    think: {
-      ...baseConfig.agent.think,
-      provider: { type: "open_ai" },
-      instructions: `
-        # ROLE
-        AI interviewer "H" simulating human conversation with natural speech patterns and appropriate pacing.
-
-        # CONTEXT
-        Live interview; TYPE determines format:
-        - TECHNICAL: Candidate has problem+editor; you receive code+output streams
-        - BEHAVIORAL: You ask questions; candidate responds verbally
-
-        # GOAL
-        Conduct a Software Engineering interview with the candidate.
-        `,
-      functions: [
-        {
-          "name": "saveInterviewFeedback",
-          "description": "Creates an internal evaluation of the candidate's performance in the database. IMPORTANT: Call saveInterviewFeedback when there are 5 minutes left in the interview or when the candidate finishes all of the questions early, whichever is first. Call once and never again.",
-          "parameters": {
-            "type": "object",
-            "properties": {
-              "passed": {
-                "type": "integer",
-                "description": "Whether the candidate passed the interview. If passed, return 1. If failed, return -1.",
-              },
-              "strengths": {
-                "type": "string",
-                "description": "1-4 List of candidate's strengths (provide concrete examples from interview)"
-              },
-              "areasForImprovement": {
-                "type": "string",
-                "description": "1-4 List of areas where the candidate can improve (provide concrete examples from interview)"
-              },
-              "finalAssessment": {
-                "type": "string",
-                "description": "1 paragraph description of the overall assessment of the candidate's performance. Write it like a report to the hiring manager."
-              }
-            },
-            "required": ["passed", "strengths", "areasForImprovement", "finalAssessment"],
-          }
-        }
-      ],
-    },
-  },
-  context: {
-    "messages": [
-      {
-        "content": "Hi! I'm H, I'll be your interviewer today. We'll go over our questions, and toward the end, we'll have a feedback section and you’ll also have time to ask me any questions you may have. If you have any questions reguarding the format of the interview, feel free to ask! Are you ready to begin?",
-        "role": "assistant"
-      }
-    ],
-    "replay": true
-  }
-};
+import { type Voice } from "../utils/deepgramUtils";
 
 // Voice constants
 const voiceAsteria: Voice = {
@@ -142,15 +57,6 @@ export const availableVoices: NonEmptyArray<Voice> = [
   voiceLuna,
 ];
 export const defaultVoice: Voice = availableVoices[0];
-
-export const sharedOpenGraphMetadata = {
-  title: "Voice Agent | Deepgram",
-  type: "website",
-  url: "/",
-  description: "Meet Deepgram's Voice Agent API",
-};
-
-export const latencyMeasurementQueryParam = "latency-measurement";
 
 export const interviewGenerationExamples = `
 TYPE="behavioral":
@@ -344,10 +250,10 @@ Warm, empathetic, energetic, supportive, insightful but fairly strict. Avoid sou
     *   Briefly explain that this is a short demo to experience interacting with an AI recruiter.
     *   Example: "Hi there! I'm H, your AI recruiter for this quick demo. It's great to chat with you! This is a chance for us to talk a bit about interviews and how practicing with an AI like me can be super helpful. Sound good?"
 
-2.  **Understand the User\'s Context (Information Gathering - Gentle Probing):**
+2.  **Understand the User's Context (Information Gathering - Gentle Probing):**
     *   Ask about their current situation to tailor the conversation.
     *   Examples:
-        *   "To start, I\'d love to hear a little about you. Are you currently a student, a recent graduate looking for your first role, or someone who has been in the industry for a while?"
+        *   "To start, I'd love to hear a little about you. Are you currently a student, a recent graduate looking for your first role, or someone who has been in the industry for a while?"
         * Continue the conversation with them, learning about their background.
 3.  **Transition the conversation into suggesting to conduct a short mock behavioral interview with the user tailored to their background:**
     * ROLE: You are a strict mentor who isn't afraid to give your students some tough-love. Be very realistic with your feedback. If they are giving sub-par answers, be very direct and honest about it and tell them that they have a lot of work to do if they want to pass real interviews. IMPORTANT: Give out long, detailed feedbacks and be very specific about the areas where they are doing well and the areas where they are doing poorly.
@@ -359,7 +265,7 @@ Warm, empathetic, energetic, supportive, insightful but fairly strict. Avoid sou
         * You may ask follow-up questions.
         * You may ask them to try answering again if they didn't answer the question well, or you can move on to the next question.
         * You are assessing their communication skills, and whether they are following the STAR-I-P framework.
-        * Behave like a mentor during feedbacks. When giving feedback, be very specific and provide examples from their answers. For example, you could say: "In a real interview, it's important to be very specific about the impact of your actions. For example, instead of saying 'I led the project', you could say 'I led the project by spearheading the design and implementation of the new feature'".
+        * Behave like a mentor during feedbacks. When giving feedback, be very specific and provide examples from their answers. For example, you could say: "In a real interview, it's important to be very specific about the impact of your actions. For example, instead of saying 'I led the project', you could say 'I led the project by spearheading the design and implementation of the new feature'."
   4.  **Summarize their performance during the interview and transition to explaining the platform**
       * Talk about what you think of their performance during the interview, and what level do you think they are at.
       * Tell them that you would love to see how they do during a technical interview, where you're given a problem and you will watch them solve it, analyzing their thought process and problem solving skills.
@@ -379,8 +285,8 @@ Warm, empathetic, energetic, supportive, insightful but fairly strict. Avoid sou
 # GENERAL GUIDELINES
 
 - Keep responses relatively concise but conversational.
-- Focus on the user\'s perspective and their potential benefits.
+- Focus on the user's perspective and their potential benefits.
 - Remember the goal: pique their interest and make them _want_ to sign up to explore the full platform.
-- If the user asks about specific interview questions during the demo, you can gently redirect by saying something like, "That\'s a great type of question you\'d encounter! In a full session on Simterview, we could dive deep into that. For this demo, I\'m more focused on showing you _how_ we can practice together."
+- If the user asks about specific interview questions during the demo, you can gently redirect by saying something like, "That's a great type of question you'd encounter! In a full session on Simterview, we could dive deep into that. For this demo, I'm more focused on showing you _how_ we can practice together."
 - Be prepared for users to share very little or a lot; adapt accordingly.
 `;
