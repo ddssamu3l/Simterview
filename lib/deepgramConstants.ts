@@ -27,7 +27,7 @@ const baseConfig = {
     },
     think: {
       provider: {
-        type: "open_ai",
+        type: "open_ai", // change to "custom"
         model: "gpt-4.1-mini",
         temperature: 0.7,
       },
